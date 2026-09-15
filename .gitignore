@@ -1,0 +1,40 @@
+# Sırlar
+.env
+.env.local
+.env.*.local
+
+# Veri
+data/
+*.duckdb
+*.duckdb.wal
+
+# Bağımlılıklar
+node_modules/
+.pnpm-store/
+
+# Build
+dist/
+build/
+.next/
+out/
+*.tsbuildinfo
+
+# Test
+coverage/
+
+# Editör / OS
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Log
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Local arac ayarlari
+.claude/settings.local.json
+.semgrep/
