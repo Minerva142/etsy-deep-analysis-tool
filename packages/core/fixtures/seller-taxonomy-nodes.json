@@ -1,0 +1,31 @@
+{
+  "count": 1,
+  "results": [
+    {
+      "id": 1,
+      "level": 1,
+      "name": "Home & Living",
+      "parent_id": null,
+      "full_path_taxonomy_ids": [1],
+      "children": [
+        {
+          "id": 66,
+          "level": 2,
+          "name": "Kitchen & Dining",
+          "parent_id": 1,
+          "full_path_taxonomy_ids": [1, 66],
+          "children": [
+            {
+              "id": 1633,
+              "level": 3,
+              "name": "Drinkware",
+              "parent_id": 66,
+              "full_path_taxonomy_ids": [1, 66, 1633],
+              "children": []
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "name": "@etsy-analysis/cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": { "etsy-analysis": "./src/index.ts" },
+  "dependencies": {
+    "@etsy-analysis/core": "workspace:*"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "count": 2,
+  "results": [
+    {
+      "shop_id": 11111,
+      "listing_id": 1234567890,
+      "rating": 5,
+      "review": "Beautiful mug, exactly as pictured.",
+      "language": "en-US",
+      "create_timestamp": 1756684800,
+      "created_timestamp": 1756684800
+    },
+    {
+      "shop_id": 11111,
+      "listing_id": 1234567890,
+      "rating": 2,
+      "review": "Arrived chipped and the handle feels fragile.",
+      "language": "en-US",
+      "create_timestamp": 1756771200,
+      "created_timestamp": 1756771200
+    }
+  ]
+}

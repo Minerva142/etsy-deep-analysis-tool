@@ -1,1 +1,29 @@
 export const CORE_VERSION = '0.1.0';
+
+export { loadConfig, type Config } from './config.js';
+export {
+  openDb,
+  toDbTimestamp,
+  fromDbTimestamp,
+  type Db,
+  type DbParams,
+} from './db/connection.js';
+export { migrate } from './db/migrate.js';
+
+export { HttpCache, buildCacheKey, TTL_SECONDS } from './etsy/cache.js';
+export { RateLimiter, parseRateLimitHeaders } from './etsy/rate-limiter.js';
+export { EtsyClient, EtsyApiError } from './etsy/client.js';
+
+export {
+  fetchAllActiveListings,
+  type ActiveListingsQuery,
+} from './etsy/endpoints/listings.js';
+export { fetchShop } from './etsy/endpoints/shops.js';
+export { fetchListingReviews } from './etsy/endpoints/reviews.js';
+export { fetchTaxonomyNodes } from './etsy/endpoints/taxonomy.js';
+
+export { normalizeListing } from './ingest/normalize.js';
+export { runNicheSnapshot, upsertNiche, type Niche } from './ingest/niche-snapshot.js';
+export { enrichShops } from './ingest/shop-enrich.js';
+export { ingestReviews, buildReviewId } from './ingest/reviews.js';
+export { ingestTaxonomy, flattenTaxonomy } from './ingest/taxonomy.js';
