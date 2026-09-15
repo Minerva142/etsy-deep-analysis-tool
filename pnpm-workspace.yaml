@@ -1,0 +1,8 @@
+packages:
+  - 'packages/*'
+  - 'apps/*'
+
+# pnpm 10+ postinstall script'lerini varsayılan olarak bloklar.
+# esbuild (vitest ve tsx bağımlılığı) kendi ikilisini kurmak için buna ihtiyaç duyar.
+allowBuilds:
+  esbuild: true

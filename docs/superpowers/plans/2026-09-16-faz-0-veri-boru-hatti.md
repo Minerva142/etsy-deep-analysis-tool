@@ -146,7 +146,7 @@ export default defineConfig({
   "main": "./src/index.ts",
   "exports": { ".": "./src/index.ts" },
   "dependencies": {
-    "@duckdb/node-api": "^1.1.0",
+    "@duckdb/node-api": "1.5.5-r.5",
     "zod": "^3.23.0"
   }
 }
