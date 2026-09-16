@@ -1,0 +1,160 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+  <style>
+    body { margin: 0; font-family: 'IBM Plex Sans', system-ui, sans-serif; }
+    a { color: #7db3f0; text-decoration: none; }
+    a:hover { color: #a9cdf6; }
+    .mono { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+  </style>
+</helmet>
+
+<div style="width: 1440px; min-height: 900px; background: #0e1114; color: #e8eaec; font-size: 13px; line-height: 1.5;">
+
+  <!-- Üst şerit: her zaman görünen ölçüm durumu -->
+  <div style="border-bottom: 1px solid #1e2429; padding: 0 28px; height: 46px; display: flex; align-items: center; justify-content: space-between;">
+    <div style="display: flex; align-items: center; gap: 28px;">
+      <span style="font-weight: 600; letter-spacing: -0.01em;">ceramic-mug</span>
+      <span class="mono" style="color: #6b7780; font-size: 12px;">3 çekim · son 13:20 · sonraki yarın</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 18px;">
+      <span class="mono" style="color: #6b7780; font-size: 12px;">kota 9 812 / 10 000</span>
+      <button style="font: inherit; font-size: 12px; font-weight: 500; padding: 5px 12px; border-radius: 2px; border: 1px solid #2b333a; background: #161b20; color: #e8eaec; cursor: pointer;">çekim</button>
+    </div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: 186px 1fr;">
+
+    <nav style="border-right: 1px solid #1e2429; padding: 20px 14px; display: flex; flex-direction: column; gap: 2px; min-height: 854px;">
+      <a href="#" style="padding: 5px 9px; border-radius: 2px; background: #161b20; color: #e8eaec; font-weight: 500;">özet</a>
+      <a href="#" style="padding: 5px 9px; border-radius: 2px; color: #93a1ab;">fırsatlar</a>
+      <a href="#" style="padding: 5px 9px; border-radius: 2px; color: #93a1ab;">rakipler</a>
+      <a href="#" style="padding: 5px 9px; border-radius: 2px; color: #93a1ab;">listingler</a>
+    </nav>
+
+    <main style="padding: 24px 28px 48px; display: flex; flex-direction: column; gap: 20px;">
+
+      <!-- Yoğun sayı ızgarası: hepsi bir bakışta -->
+      <div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); border: 1px solid #1e2429; border-radius: 2px; overflow: hidden;">
+        <div style="padding: 14px 16px; border-right: 1px solid #1e2429;">
+          <p class="mono" style="margin: 0 0 4px; font-size: 11px; color: #6b7780; letter-spacing: 0.04em;">LISTING</p>
+          <p class="mono" style="margin: 0; font-size: 22px; font-weight: 500;">482</p>
+        </div>
+        <div style="padding: 14px 16px; border-right: 1px solid #1e2429;">
+          <p class="mono" style="margin: 0 0 4px; font-size: 11px; color: #6b7780; letter-spacing: 0.04em;">SATICI</p>
+          <p class="mono" style="margin: 0; font-size: 22px; font-weight: 500;">282</p>
+        </div>
+        <div style="padding: 14px 16px; border-right: 1px solid #1e2429;">
+          <p class="mono" style="margin: 0 0 4px; font-size: 11px; color: #6b7780; letter-spacing: 0.04em;">MEDYAN</p>
+          <p class="mono" style="margin: 0; font-size: 22px; font-weight: 500;">29.00</p>
+        </div>
+        <div style="padding: 14px 16px; border-right: 1px solid #1e2429;">
+          <p class="mono" style="margin: 0 0 4px; font-size: 11px; color: #6b7780; letter-spacing: 0.04em;">HHI</p>
+          <p class="mono" style="margin: 0; font-size: 22px; font-weight: 500;">0.008</p>
+        </div>
+        <div style="padding: 14px 16px; border-right: 1px solid #1e2429;">
+          <p class="mono" style="margin: 0 0 4px; font-size: 11px; color: #6b7780; letter-spacing: 0.04em;">YAŞ</p>
+          <p class="mono" style="margin: 0; font-size: 22px; font-weight: 500;">126<span style="font-size: 13px; color: #6b7780;">g</span></p>
+        </div>
+        <div style="padding: 14px 16px;">
+          <p class="mono" style="margin: 0 0 4px; font-size: 11px; color: #6b7780; letter-spacing: 0.04em;">HIZ</p>
+          <p class="mono" style="margin: 0; font-size: 22px; font-weight: 500; color: #4b555d;">—</p>
+        </div>
+      </div>
+
+      <!-- Tek geniş grafik + yanında canlı tablo -->
+      <div style="display: grid; grid-template-columns: 1fr 380px; gap: 16px;">
+
+        <section style="border: 1px solid #1e2429; border-radius: 2px; padding: 16px 18px;">
+          <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 14px;">
+            <span class="mono" style="font-size: 11px; color: #6b7780; letter-spacing: 0.04em;">FAVORİ HIZI · ADET/GÜN</span>
+            <span class="mono" style="font-size: 11px; color: #4b555d;">ölçülemedi</span>
+          </div>
+          <svg viewBox="0 0 700 220" style="display: block; width: 100%; height: auto;">
+            <line x1="40" x2="690" y1="20"  y2="20"  stroke="#1e2429"/>
+            <line x1="40" x2="690" y1="70"  y2="70"  stroke="#1e2429"/>
+            <line x1="40" x2="690" y1="120" y2="120" stroke="#1e2429"/>
+            <line x1="40" x2="690" y1="170" y2="170" stroke="#2b333a"/>
+            <text x="32" y="24"  text-anchor="end" font-size="10" fill="#4b555d" font-family="IBM Plex Mono, monospace">1.5</text>
+            <text x="32" y="74"  text-anchor="end" font-size="10" fill="#4b555d" font-family="IBM Plex Mono, monospace">1.0</text>
+            <text x="32" y="124" text-anchor="end" font-size="10" fill="#4b555d" font-family="IBM Plex Mono, monospace">0.5</text>
+            <text x="32" y="174" text-anchor="end" font-size="10" fill="#4b555d" font-family="IBM Plex Mono, monospace">0</text>
+            <rect x="40" y="16" width="650" height="154" fill="url(#tar)"/>
+            <defs>
+              <pattern id="tar" width="6" height="6" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+                <line x1="0" y1="0" x2="0" y2="6" stroke="#1e2429" stroke-width="1"/>
+              </pattern>
+            </defs>
+            <text x="365" y="98" text-anchor="middle" font-size="12" fill="#4b555d" font-family="IBM Plex Mono, monospace">
+              çekimler arası &lt; 1 gün
+            </text>
+            <text x="40"  y="196" font-size="10" fill="#4b555d" font-family="IBM Plex Mono, monospace">16-09</text>
+            <text x="690" y="196" text-anchor="end" font-size="10" fill="#4b555d" font-family="IBM Plex Mono, monospace">17-09</text>
+          </svg>
+        </section>
+
+        <section style="border: 1px solid #1e2429; border-radius: 2px; padding: 16px 18px;">
+          <p class="mono" style="margin: 0 0 12px; font-size: 11px; color: #6b7780; letter-spacing: 0.04em;">FIRSAT ETİKETLERİ</p>
+          <div style="display: flex; flex-direction: column; gap: 0;">
+            <div style="display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid #1e2429;">
+              <span style="color: #f0834f;">custom name mug</span>
+              <span class="mono" style="color: #93a1ab;">6</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid #1e2429;">
+              <span style="color: #f0834f;">personalised mug</span>
+              <span class="mono" style="color: #93a1ab;">5</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid #1e2429;">
+              <span style="color: #f0834f;">gift for mom</span>
+              <span class="mono" style="color: #93a1ab;">6</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid #1e2429;">
+              <span style="color: #f0834f;">wedding mug</span>
+              <span class="mono" style="color: #93a1ab;">9</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; padding: 7px 0;">
+              <span style="color: #f0834f;">name mug</span>
+              <span class="mono" style="color: #93a1ab;">12</span>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Uzun liste: terminal yoğunluğu -->
+      <section style="border: 1px solid #1e2429; border-radius: 2px; padding: 16px 18px;">
+        <p class="mono" style="margin: 0 0 12px; font-size: 11px; color: #6b7780; letter-spacing: 0.04em;">LISTINGLER · İLK 8</p>
+        <table style="width: 100%; border-collapse: collapse; font-size: 12.5px;">
+          <thead>
+            <tr>
+              <th class="mono" style="text-align: left; font-weight: 400; color: #6b7780; padding: 0 12px 7px 0; border-bottom: 1px solid #1e2429; font-size: 11px;">BAŞLIK</th>
+              <th class="mono" style="text-align: right; font-weight: 400; color: #6b7780; padding: 0 12px 7px 0; border-bottom: 1px solid #1e2429; font-size: 11px;">FİYAT</th>
+              <th class="mono" style="text-align: right; font-weight: 400; color: #6b7780; padding: 0 12px 7px 0; border-bottom: 1px solid #1e2429; font-size: 11px;">FAVORİ</th>
+              <th class="mono" style="text-align: right; font-weight: 400; color: #6b7780; padding: 0 0 7px; border-bottom: 1px solid #1e2429; font-size: 11px;">HIZ</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td style="padding: 6px 12px 6px 0; border-bottom: 1px solid #161b20;">Animal ceramic mug, hand painted dog portrait</td><td class="mono" style="text-align: right; padding: 6px 12px 6px 0; border-bottom: 1px solid #161b20;">59.00</td><td class="mono" style="text-align: right; padding: 6px 12px 6px 0; border-bottom: 1px solid #161b20;">1 493</td><td class="mono" style="text-align: right; padding: 6px 0; border-bottom: 1px solid #161b20; color: #4b555d;">—</td></tr>
+            <tr><td style="padding: 6px 12px 6px 0; border-bottom: 1px solid #161b20;">Posh Bitch ceramic mug, salty mug</td><td class="mono" style="text-align: right; padding: 6px 12px 6px 0; border-bottom: 1px solid #161b20;">18.75</td><td class="mono" style="text-align: right; padding: 6px 12px 6px 0; border-bottom: 1px solid #161b20;">982</td><td class="mono" style="text-align: right; padding: 6px 0; border-bottom: 1px solid #161b20; color: #4b555d;">—</td></tr>
+            <tr><td style="padding: 6px 12px 6px 0; border-bottom: 1px solid #161b20;">450ml blue design handmade ceramic mug</td><td class="mono" style="text-align: right; padding: 6px 12px 6px 0; border-bottom: 1px solid #161b20;">49.00</td><td class="mono" style="text-align: right; padding: 6px 12px 6px 0; border-bottom: 1px solid #161b20;">744</td><td class="mono" style="text-align: right; padding: 6px 0; border-bottom: 1px solid #161b20; color: #4b555d;">—</td></tr>
+            <tr><td style="padding: 6px 12px 6px 0; border-bottom: 1px solid #161b20;">Personalized coffee mug, custom decal</td><td class="mono" style="text-align: right; padding: 6px 12px 6px 0; border-bottom: 1px solid #161b20;">9.99</td><td class="mono" style="text-align: right; padding: 6px 12px 6px 0; border-bottom: 1px solid #161b20;">611</td><td class="mono" style="text-align: right; padding: 6px 0; border-bottom: 1px solid #161b20; color: #4b555d;">—</td></tr>
+            <tr><td style="padding: 6px 12px 6px 0; border-bottom: 1px solid #161b20;">Lutheran mug, religious protestant cross</td><td class="mono" style="text-align: right; padding: 6px 12px 6px 0; border-bottom: 1px solid #161b20;">19.95</td><td class="mono" style="text-align: right; padding: 6px 12px 6px 0; border-bottom: 1px solid #161b20;">508</td><td class="mono" style="text-align: right; padding: 6px 0; border-bottom: 1px solid #161b20; color: #4b555d;">—</td></tr>
+            <tr><td style="padding: 6px 12px 6px 0; border-bottom: 1px solid #161b20;">ROGUE ceramic mug 11oz, dungeons &amp; dragons</td><td class="mono" style="text-align: right; padding: 6px 12px 6px 0; border-bottom: 1px solid #161b20;">24.95</td><td class="mono" style="text-align: right; padding: 6px 12px 6px 0; border-bottom: 1px solid #161b20;">470</td><td class="mono" style="text-align: right; padding: 6px 0; border-bottom: 1px solid #161b20; color: #4b555d;">—</td></tr>
+            <tr><td style="padding: 6px 12px 6px 0; border-bottom: 1px solid #161b20;">Christmas ceramic mug, gnomes vintage</td><td class="mono" style="text-align: right; padding: 6px 12px 6px 0; border-bottom: 1px solid #161b20;">12.00</td><td class="mono" style="text-align: right; padding: 6px 12px 6px 0; border-bottom: 1px solid #161b20;">418</td><td class="mono" style="text-align: right; padding: 6px 0; border-bottom: 1px solid #161b20; color: #4b555d;">—</td></tr>
+            <tr><td style="padding: 6px 12px 6px 0;">Choice vintage ceramic mug, budda head</td><td class="mono" style="text-align: right; padding: 6px 12px 6px 0;">13.00</td><td class="mono" style="text-align: right; padding: 6px 12px 6px 0;">377</td><td class="mono" style="text-align: right; padding: 6px 0; color: #4b555d;">—</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+    </main>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

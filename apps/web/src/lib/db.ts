@@ -6,6 +6,7 @@ import {
   openDb,
   type Db,
 } from '@etsy-analysis/core/analysis';
+import { sirayaAl } from './kilit.js';
 
 /**
  * DUCKDB_PATH göreli verildiğinde depo köküne göre çözülür.
@@ -36,19 +37,23 @@ export function veritabaniYolu(configPath: string): string {
  * İstek başına bir bağlantı açar ve her durumda kapatır.
  *
  * Dashboard bir OKUYUCU: şemayı oluşturmaz, migrate çalıştırmaz. Şemayı
- * yazan taraf (CLI snapshot komutu) kurar. Bağlantıyı kısa ömürlü tutmak
- * dashboard açıkken snapshot alınabilmesini de sağlıyor.
+ * yazan taraf (CLI snapshot komutu) kurar.
+ *
+ * Erişim `sirayaAl` ile sıraya giriyor: DuckDB aynı dosyayı bir süreçte
+ * ikinci kez açmayı reddettiği için, çakışan iki istek birbirini düşürüyordu.
  */
 export async function withDb<T>(fn: (db: Db) => Promise<T>): Promise<T> {
-  loadDotEnvIfPresent();
-  const config = loadConfig(process.env);
-  // Panel yalnizca okuyor: salt-okunur acmak CLI'in ayni anda yazmasina izin verir.
-  const db = await openDb(veritabaniYolu(config.duckdbPath), { readOnly: true });
-  try {
-    return await fn(db);
-  } finally {
-    await db.close();
-  }
+  return sirayaAl(async () => {
+    loadDotEnvIfPresent();
+    const config = loadConfig(process.env);
+    // Panel yalnızca okuyor; salt-okunur açmak niyeti de belgeliyor.
+    const db = await openDb(veritabaniYolu(config.duckdbPath), { readOnly: true });
+    try {
+      return await fn(db);
+    } finally {
+      await db.close();
+    }
+  });
 }
 
 /**

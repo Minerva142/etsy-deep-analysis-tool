@@ -1,0 +1,229 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+  <style>
+    body { margin: 0; font-family: 'IBM Plex Sans', system-ui, sans-serif; }
+    a { color: #2a78d6; text-decoration: none; }
+    a:hover { color: #1c5cab; }
+    .tnum { font-variant-numeric: tabular-nums; }
+  </style>
+</helmet>
+
+<div style="width: 1440px; min-height: 1140px; background: #eef1ed; color: #0b0b0b; font-size: 14px; line-height: 1.55; display: grid; grid-template-columns: 232px 1fr;">
+
+  <aside style="border-right: 1px solid #d9ddd7; padding: 28px 20px; display: flex; flex-direction: column; gap: 26px;">
+    <div>
+      <p style="margin: 0 0 3px; font-size: 15px; font-weight: 600; letter-spacing: -0.01em;">Etsy Deep Analysis</p>
+      <p style="margin: 0; font-size: 12.5px; color: #898781;">Ölçülen veri, tahmin yok</p>
+    </div>
+    <nav style="display: flex; flex-direction: column; gap: 1px;">
+      <a href="#" style="padding: 6px 8px; margin: 0 -8px; border-radius: 3px; color: #52514e;">Nişler</a>
+    </nav>
+    <div style="display: flex; flex-direction: column; gap: 6px;">
+      <p style="margin: 0; font-size: 12.5px; color: #898781;">Ceramic mugs</p>
+      <nav style="display: flex; flex-direction: column; gap: 1px;">
+        <a href="#" style="padding: 6px 8px; margin: 0 -8px; border-radius: 3px; color: #52514e;">Özet</a>
+        <a href="#" style="padding: 6px 8px; margin: 0 -8px; border-radius: 3px; background: #fcfcfb; color: #0b0b0b; font-weight: 500;">Fırsatlar</a>
+        <a href="#" style="padding: 6px 8px; margin: 0 -8px; border-radius: 3px; color: #52514e;">Rakipler</a>
+        <a href="#" style="padding: 6px 8px; margin: 0 -8px; border-radius: 3px; color: #52514e;">Listingler</a>
+      </nav>
+    </div>
+  </aside>
+
+  <main style="padding: 34px 44px 72px; display: flex; flex-direction: column; gap: 20px;">
+
+    <div>
+      <h1 style="margin: 0; font-size: 25px; font-weight: 600; letter-spacing: -0.022em;">Fırsatlar</h1>
+      <p style="margin: 4px 0 0; color: #52514e; max-width: 68ch;">
+        Üçü de aynı soruya bakıyor: talebin arzı aştığı yer neresi?
+      </p>
+    </div>
+
+    <!-- Kadran: sayfanın merkezi. Turuncu bölge aranan yer. -->
+    <section style="background: #fcfcfb; border: 1px solid #d9ddd7; border-radius: 3px; padding: 22px 24px;">
+      <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 18px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <h2 style="margin: 0; font-size: 15px; font-weight: 600; letter-spacing: -0.01em;">Etiket fırsat kadranı</h2>
+          <span style="padding: 1px 7px; border-radius: 2px; background: rgba(235,104,52,0.09); color: #eb6834; font-size: 12.5px; font-weight: 500;">7 fırsat</span>
+        </div>
+        <span style="font-size: 12.5px; color: #898781;">yatay: kaç listing’de geçiyor · dikey: ortalama favori hızı</span>
+      </div>
+
+      <div style="background: #f6f7f4; border: 1px solid #e1e0d9; border-radius: 2px; padding: 16px 18px;">
+        <svg viewBox="0 0 1160 330" style="display: block; width: 100%; height: auto;">
+          <!-- Fırsat kadranı zemini: yüksek getiri, düşük kullanım -->
+          <rect x="56" y="14" width="440" height="150" fill="rgba(235,104,52,0.09)"/>
+
+          <line x1="496" x2="496" y1="14" y2="286" stroke="#c3c2b7" stroke-width="1" stroke-dasharray="3 3"/>
+          <line x1="56" x2="1140" y1="164" y2="164" stroke="#c3c2b7" stroke-width="1" stroke-dasharray="3 3"/>
+          <line x1="56" x2="1140" y1="286" y2="286" stroke="#c3c2b7" stroke-width="1"/>
+
+          <!-- Fırsat kadranındaki noktalar, doğrudan etiketli -->
+          <circle cx="112" cy="40"  r="5.5" fill="#eb6834" stroke="#f6f7f4" stroke-width="2"/>
+          <text x="126" y="44" font-size="12" fill="#52514e">custom name mug</text>
+
+          <circle cx="188" cy="72"  r="5.5" fill="#eb6834" stroke="#f6f7f4" stroke-width="2"/>
+          <text x="202" y="76" font-size="12" fill="#52514e">personalised mug</text>
+
+          <circle cx="152" cy="106" r="5.5" fill="#eb6834" stroke="#f6f7f4" stroke-width="2"/>
+          <text x="166" y="110" font-size="12" fill="#52514e">gift for mom</text>
+
+          <circle cx="286" cy="128" r="5.5" fill="#eb6834" stroke="#f6f7f4" stroke-width="2"/>
+          <text x="300" y="132" font-size="12" fill="#52514e">wedding mug</text>
+
+          <circle cx="392" cy="146" r="5.5" fill="#eb6834" stroke="#f6f7f4" stroke-width="2"/>
+          <text x="406" y="150" font-size="12" fill="#52514e">name mug</text>
+
+          <!-- Doymuş kadran -->
+          <circle cx="640" cy="60"  r="5.5" fill="#2a78d6" stroke="#f6f7f4" stroke-width="2"/>
+          <circle cx="784" cy="96"  r="5.5" fill="#2a78d6" stroke="#f6f7f4" stroke-width="2"/>
+          <circle cx="928" cy="130" r="5.5" fill="#2a78d6" stroke="#f6f7f4" stroke-width="2"/>
+          <circle cx="1046" cy="150" r="5.5" fill="#2a78d6" stroke="#f6f7f4" stroke-width="2"/>
+
+          <!-- Düşük getiri -->
+          <circle cx="590" cy="208" r="5.5" fill="#2a78d6" stroke="#f6f7f4" stroke-width="2"/>
+          <circle cx="742" cy="232" r="5.5" fill="#2a78d6" stroke="#f6f7f4" stroke-width="2"/>
+          <circle cx="880" cy="248" r="5.5" fill="#2a78d6" stroke="#f6f7f4" stroke-width="2"/>
+          <circle cx="1024" cy="262" r="5.5" fill="#2a78d6" stroke="#f6f7f4" stroke-width="2"/>
+          <circle cx="212" cy="222" r="5.5" fill="#2a78d6" stroke="#f6f7f4" stroke-width="2"/>
+          <circle cx="330" cy="248" r="5.5" fill="#2a78d6" stroke="#f6f7f4" stroke-width="2"/>
+
+          <text x="70"   y="34"  font-size="11.5" fill="#eb6834" font-weight="500">az kullanılan · yüksek getiri</text>
+          <text x="1128" y="34"  text-anchor="end" font-size="11.5" fill="#898781">doymuş</text>
+          <text x="1128" y="278" text-anchor="end" font-size="11.5" fill="#898781">düşük getiri</text>
+          <text x="56"   y="308" font-size="11" fill="#898781">1 listing</text>
+          <text x="1140" y="308" text-anchor="end" font-size="11" fill="#898781">90 listing</text>
+        </svg>
+      </div>
+    </section>
+
+    <!-- Fiyat-talep ve boşluk matrisi yan yana -->
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px;">
+
+      <section style="background: #fcfcfb; border: 1px solid #d9ddd7; border-radius: 3px; padding: 20px 22px;">
+        <h2 style="margin: 0 0 4px; font-size: 15px; font-weight: 600; letter-spacing: -0.01em;">Fiyat–talep eğrisi</h2>
+        <p style="margin: 0 0 16px; font-size: 12.5px; color: #898781;">
+          Çubuk: listing başına talep · üstteki sayı: o banttaki arz
+        </p>
+        <div style="background: #f6f7f4; border: 1px solid #e1e0d9; border-radius: 2px; padding: 16px 18px;">
+          <svg viewBox="0 0 540 190" style="display: block; width: 100%; height: auto;">
+            <line x1="36" x2="540" y1="40"  y2="40"  stroke="#e1e0d9"/>
+            <line x1="36" x2="540" y1="90"  y2="90"  stroke="#e1e0d9"/>
+            <line x1="36" x2="540" y1="140" y2="140" stroke="#c3c2b7"/>
+            <text x="28" y="44" text-anchor="end" font-size="11" fill="#898781">2.0</text>
+            <text x="28" y="94" text-anchor="end" font-size="11" fill="#898781">1.0</text>
+            <text x="28" y="144" text-anchor="end" font-size="11" fill="#898781">0</text>
+
+            <rect x="44"  y="58"  width="38" height="82" rx="4" fill="#2a78d6"/>
+            <text x="63"  y="52"  text-anchor="middle" font-size="10.5" fill="#898781">49</text>
+            <rect x="94"  y="46"  width="38" height="94" rx="4" fill="#2a78d6"/>
+            <text x="113" y="40"  text-anchor="middle" font-size="10.5" fill="#898781">48</text>
+            <rect x="144" y="76"  width="38" height="64" rx="4" fill="#2a78d6"/>
+            <text x="163" y="70"  text-anchor="middle" font-size="10.5" fill="#898781">48</text>
+            <rect x="194" y="98"  width="38" height="42" rx="4" fill="#2a78d6"/>
+            <text x="213" y="92"  text-anchor="middle" font-size="10.5" fill="#898781">49</text>
+            <rect x="244" y="110" width="38" height="30" rx="4" fill="#2a78d6"/>
+            <text x="263" y="104" text-anchor="middle" font-size="10.5" fill="#898781">48</text>
+            <rect x="294" y="118" width="38" height="22" rx="4" fill="#2a78d6"/>
+            <text x="313" y="112" text-anchor="middle" font-size="10.5" fill="#898781">48</text>
+            <rect x="344" y="124" width="38" height="16" rx="4" fill="#2a78d6"/>
+            <text x="363" y="118" text-anchor="middle" font-size="10.5" fill="#898781">49</text>
+            <rect x="394" y="128" width="38" height="12" rx="4" fill="#2a78d6"/>
+            <text x="413" y="122" text-anchor="middle" font-size="10.5" fill="#898781">48</text>
+            <rect x="444" y="132" width="38" height="8"  rx="4" fill="#2a78d6"/>
+            <text x="463" y="126" text-anchor="middle" font-size="10.5" fill="#898781">48</text>
+            <rect x="494" y="135" width="38" height="5"  rx="4" fill="#2a78d6"/>
+            <text x="513" y="129" text-anchor="middle" font-size="10.5" fill="#898781">47</text>
+
+            <text x="44"  y="160" font-size="10.5" fill="#898781">6.00</text>
+            <text x="244" y="160" font-size="10.5" fill="#898781">25.00</text>
+            <text x="494" y="160" font-size="10.5" fill="#898781">78.00</text>
+
+            <text x="44" y="182" font-size="11.5" fill="#52514e">Talep alt bantlarda yoğunlaşıyor, arz ise eşit dağılmış.</text>
+          </svg>
+        </div>
+      </section>
+
+      <section style="background: #fcfcfb; border: 1px solid #d9ddd7; border-radius: 3px; padding: 20px 22px;">
+        <h2 style="margin: 0 0 4px; font-size: 15px; font-weight: 600; letter-spacing: -0.01em;">Boşluk matrisi</h2>
+        <p style="margin: 0 0 16px; font-size: 12.5px; color: #898781;">
+          Koyu hücre: talep/arz oranı yüksek
+        </p>
+        <div style="background: #f6f7f4; border: 1px solid #e1e0d9; border-radius: 2px; padding: 16px 18px;">
+          <svg viewBox="0 0 540 190" style="display: block; width: 100%; height: auto;">
+            <text x="252" y="14" text-anchor="middle" font-size="11" fill="#898781">1</text>
+            <text x="310" y="14" text-anchor="middle" font-size="11" fill="#898781">2</text>
+            <text x="368" y="14" text-anchor="middle" font-size="11" fill="#898781">3</text>
+            <text x="426" y="14" text-anchor="middle" font-size="11" fill="#898781">4</text>
+            <text x="484" y="14" text-anchor="middle" font-size="11" fill="#898781">5</text>
+
+            <text x="238" y="38" text-anchor="end" font-size="11.5" fill="#52514e">Drink &amp; Barware</text>
+            <rect x="226" y="24" width="54" height="24" rx="2" fill="#0d366b"/>
+            <rect x="284" y="24" width="54" height="24" rx="2" fill="#256abf"/>
+            <rect x="342" y="24" width="54" height="24" rx="2" fill="#5598e7"/>
+            <rect x="400" y="24" width="54" height="24" rx="2" fill="#9ec5f4"/>
+            <rect x="458" y="24" width="54" height="24" rx="2" fill="#cde2fb"/>
+
+            <text x="238" y="70" text-anchor="end" font-size="11.5" fill="#52514e">Bridesmaids’ Gifts</text>
+            <rect x="226" y="56" width="54" height="24" rx="2" fill="#256abf"/>
+            <rect x="284" y="56" width="54" height="24" rx="2" fill="#5598e7"/>
+            <rect x="342" y="56" width="54" height="24" rx="2" fill="#cde2fb"/>
+            <rect x="400" y="56" width="54" height="24" rx="2" fill="#f3f7fd"/>
+            <rect x="458" y="56" width="54" height="24" rx="2" fill="none" stroke="#e1e0d9"/>
+
+            <text x="238" y="102" text-anchor="end" font-size="11.5" fill="#52514e">Dining &amp; Serving</text>
+            <rect x="226" y="88" width="54" height="24" rx="2" fill="#9ec5f4"/>
+            <rect x="284" y="88" width="54" height="24" rx="2" fill="#5598e7"/>
+            <rect x="342" y="88" width="54" height="24" rx="2" fill="#9ec5f4"/>
+            <rect x="400" y="88" width="54" height="24" rx="2" fill="#cde2fb"/>
+            <rect x="458" y="88" width="54" height="24" rx="2" fill="#f3f7fd"/>
+
+            <text x="238" y="134" text-anchor="end" font-size="11.5" fill="#52514e">Miniatures</text>
+            <rect x="226" y="120" width="54" height="24" rx="2" fill="#cde2fb"/>
+            <rect x="284" y="120" width="54" height="24" rx="2" fill="#f3f7fd"/>
+            <rect x="342" y="120" width="54" height="24" rx="2" fill="none" stroke="#e1e0d9"/>
+            <rect x="400" y="120" width="54" height="24" rx="2" fill="none" stroke="#e1e0d9"/>
+            <rect x="458" y="120" width="54" height="24" rx="2" fill="none" stroke="#e1e0d9"/>
+
+            <text x="226" y="170" font-size="11.5" fill="#52514e">Alt bantlarda Drink &amp; Barware en yoğun boşluğu taşıyor.</text>
+          </svg>
+        </div>
+      </section>
+    </div>
+
+    <!-- AI yorumu -->
+    <section style="background: #fcfcfb; border: 1px solid #d9ddd7; border-radius: 3px; padding: 20px 22px; display: flex; flex-direction: column; gap: 12px;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <h2 style="margin: 0; font-size: 15px; font-weight: 600; letter-spacing: -0.01em;">AI yorumu</h2>
+        <span style="padding: 1px 7px; border-radius: 2px; background: rgba(235,104,52,0.09); color: #eb6834; font-size: 12.5px; font-weight: 500;">güven: orta</span>
+      </div>
+      <p style="margin: 0; max-width: 68ch; line-height: 1.6;">
+        Kişiselleştirme talebi arzın önünde: <span class="tnum">custom name mug</span> ve
+        <span class="tnum">personalised mug</span> etiketleri toplam <span class="tnum">11</span>
+        listing’de geçerken ortalamanın belirgin üstünde favori taşıyor. Alt fiyat bantlarında
+        listing başına talep yüksek, arz ise bantlara eşit dağılmış.
+      </p>
+      <p style="margin: 0; max-width: 68ch; color: #52514e;">
+        <span style="color: #898781;">Neden boş olabilir:</span>
+        kişiselleştirme üretim tarafında ek iş yükü demek; birim başına emek arttığı için
+        satıcıların bir kısmı bu alandan uzak duruyor olabilir.
+      </p>
+      <div style="border-top: 1px solid #e1e0d9; padding-top: 12px;">
+        <p style="margin: 0; font-size: 12.5px; color: #898781;">
+          Bu yorum yalnızca yukarıdaki ölçülmüş agregatlara dayanıyor; satış ve gelir verisi elimizde yok.
+        </p>
+      </div>
+    </section>
+
+  </main>
+</div>
+</x-dc>
+</body>
+</html>

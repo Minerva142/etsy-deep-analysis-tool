@@ -27,6 +27,7 @@ import {
   type Niche,
 } from '@etsy-analysis/core';
 import { veritabaniYolu } from './lib/db.js';
+import { sirayaAl } from './lib/kilit.js';
 
 /**
  * Yazma işlemleri için ayrı bağlantı.
@@ -38,15 +39,19 @@ import { veritabaniYolu } from './lib/db.js';
 async function yazmaIcin<T>(
   fn: (db: Awaited<ReturnType<typeof openDb>>, config: ReturnType<typeof loadConfig>) => Promise<T>,
 ): Promise<T> {
-  loadDotEnvIfPresent();
-  const config = loadConfig(process.env);
-  const db = await openDb(veritabaniYolu(config.duckdbPath));
-  try {
-    await migrate(db);
-    return await fn(db, config);
-  } finally {
-    await db.close();
-  }
+  // Okumalarla AYNI sıraya giriyor: bir çekim sürerken gelen sayfa isteği
+  // düşmek yerine bekliyor.
+  return sirayaAl(async () => {
+    loadDotEnvIfPresent();
+    const config = loadConfig(process.env);
+    const db = await openDb(veritabaniYolu(config.duckdbPath));
+    try {
+      await migrate(db);
+      return await fn(db, config);
+    } finally {
+      await db.close();
+    }
+  });
 }
 
 export interface EylemSonucu {

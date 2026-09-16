@@ -9,6 +9,7 @@ import {
   rakiplerSayfasi,
 } from './sayfalar.js';
 import { insightUret, nisEkle, nisSil, snapshotAl, type EylemSonucu } from './eylemler.js';
+import { dosyaYokMu, kilitHatasiMi } from './lib/kilit.js';
 
 const PORT = Number(process.env.PORT ?? 3000);
 const stilYolu = new URL('./stil.css', import.meta.url);
@@ -142,15 +143,29 @@ const sunucu = createServer((istek, yanit) => {
           error instanceof Error ? (error.stack ?? error.message) : String(error)
         }\n`,
       );
-      const eksikVeri =
-        error instanceof Error &&
-        /Cannot open file|does not exist|not found/i.test(error.message);
+      // Kilit hatasını "veritabanı yok" diye göstermek yanlış yönlendiriyordu:
+      // sebep tam tersi, veritabanı o anda BAŞKA bir iş tarafından kullanılıyor.
+      if (kilitHatasiMi(error)) {
+        yanit.writeHead(503, {
+          'content-type': 'text/html; charset=utf-8',
+          'retry-after': '5',
+        });
+        yanit.end(
+          hataSayfasi(
+            'Veritabanı şu an meşgul',
+            'Muhtemelen bir çekim sürüyor ya da CLI komutu çalışıyor. Birkaç saniye sonra sayfayı yenileyin.',
+          ),
+        );
+        return;
+      }
+
+      const dosyaYok = dosyaYokMu(error);
       yanit.writeHead(500, { 'content-type': 'text/html; charset=utf-8' });
       yanit.end(
         hataSayfasi(
-          eksikVeri ? 'Veritabanı bulunamadı' : 'Bir şeyler ters gitti',
-          eksikVeri
-            ? 'Henüz hiç snapshot alınmamış görünüyor. Nişler ekranından bir niş ekleyip çekim başlatabilirsiniz.'
+          dosyaYok ? 'Veritabanı bulunamadı' : 'Bir şeyler ters gitti',
+          dosyaYok
+            ? 'Henüz hiç çekim yapılmamış görünüyor. Nişler ekranından bir niş ekleyip çekim başlatabilirsiniz.'
             : 'Ayrıntı sunucu günlüğünde. Sayfayı yenilemeyi deneyin.',
         ),
       );
