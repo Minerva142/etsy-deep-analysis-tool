@@ -1,4 +1,7 @@
 services:
+  # Snapshot alma ve rapor komutları:
+  #   docker compose run --rm cli snapshot --niche ... --name "..." --keywords "..."
+  #   docker compose run --rm cli report --niche ...
   cli:
     build: .
     image: etsy-deep-analysis-tool
@@ -8,5 +11,21 @@ services:
     environment:
       DUCKDB_PATH: /app/data/etsy.duckdb
     # DuckDB dosyası host'ta kalır: container silinse de tarihçe durur.
+    volumes:
+      - ./data:/app/data
+
+  # Dashboard:
+  #   docker compose up web   ->   http://localhost:3000
+  web:
+    build: .
+    image: etsy-deep-analysis-tool
+    command: ['dashboard']
+    env_file:
+      - .env
+    environment:
+      DUCKDB_PATH: /app/data/etsy.duckdb
+      PORT: '3000'
+    ports:
+      - '3000:3000'
     volumes:
       - ./data:/app/data

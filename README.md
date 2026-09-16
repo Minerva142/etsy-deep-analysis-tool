@@ -21,8 +21,8 @@ Etsy pazarını sistematik olarak analiz eden, local çalışan bir araç. Etsy 
 
 ## Durum
 
-**Faz 0 ve Faz 1 tamam:** veri boru hattı ve analiz katmanı çalışıyor, canlı API'ye karşı doğrulandı.
-Sıradaki: Faz 2, web dashboard. Yol haritası [tasarım dokümanında](docs/superpowers/specs/2026-09-16-etsy-deep-analysis-tool-design.md).
+**Faz 0, 1 ve 2 tamam:** veri boru hattı, analiz katmanı ve web paneli çalışıyor, canlı API'ye karşı doğrulandı.
+Sıradaki: Faz 3, AI katmanı. Yol haritası [tasarım dokümanında](docs/superpowers/specs/2026-09-16-etsy-deep-analysis-tool-design.md).
 
 ## Kurulum
 
@@ -69,6 +69,23 @@ Diğer seçenekler: `--taxonomy-id`, `--min-price`, `--max-price`, `--sort-on`.
 
 **Örnekleme notu:** Snapshot'lar varsayılan olarak `sort_on=score` ile alınır. Etsy'nin kendi varsayılanı (`created`) her gün "o gün oluşturulan ya da yenilenen" listing'leri verir — örneklem her gün tamamen değiştiği için aynı listing iki snapshot'ta görünmez ve hız hiç hesaplanamaz.
 
+## Dashboard
+
+```bash
+pnpm dashboard        # http://localhost:3000
+```
+
+Beş ekran: **Nişler**, **Niş Özeti**, **Fırsatlar**, **Rakipler**, **Listing Gezgini**.
+
+Panel bir okuyucudur: veritabanını salt-okunur açar ve şema oluşturmaz, böylece
+açıkken snapshot alınabilir. Derleme adımı yok — CLI gibi doğrudan çalışır.
+
+Arayüzün taşıyıcı kuralı, aracın kendi kuralıyla aynı: **ölçülemeyen değer
+uydurulmaz.** Ölçülen sayı tam mürekkeple, ölçülemeyen soluk bir tireyle
+(`—`) yazılır; sıfırdan kesin olarak ayrılır çünkü sıfır ölçülmüş bir
+değerdir. Tek snapshot varken hıza dayanan bölümler boş tablo göstermek
+yerine neden ölçülemediğini ve ne yapılacağını söyler.
+
 ## Docker
 
 ```bash
@@ -76,6 +93,8 @@ docker compose build
 docker compose run --rm cli snapshot --niche ceramic-mug --name "Ceramic mugs" --keywords "ceramic mug"
 docker compose run --rm cli report --niche ceramic-mug
 docker compose run --rm cli test
+
+docker compose up web      # http://localhost:3000
 ```
 
 Anahtarlar imaja gömülmez; çalışma anında host'taki `.env`'den okunur. DuckDB dosyası `./data` volume'unda host'ta durur — container silinse de tarihçe kaybolmaz ve yerelde/container'da alınan snapshot'lar aynı veritabanında birikir.
@@ -83,7 +102,7 @@ Anahtarlar imaja gömülmez; çalışma anında host'taki `.env`'den okunur. Duc
 ## Geliştirme
 
 ```bash
-pnpm test        # 129 test, ağ erişimi gerektirmez (fixture modu)
+pnpm test        # 137 test, ağ erişimi gerektirmez (fixture modu)
 pnpm typecheck
 pnpm inspect     # ham veriye hızlı bakış
 ```
@@ -92,4 +111,4 @@ Testler Etsy'ye hiç istek atmaz; `packages/core/fixtures/` altındaki kayıtlı
 
 ## Teknoloji
 
-TypeScript monorepo (pnpm workspace) — paylaşılan `core` paketi, CLI, DuckDB depolama. Dashboard (Faz 2) ve MCP server (Faz 4) yol haritasında.
+TypeScript monorepo (pnpm workspace) — paylaşılan `core` paketi, CLI, düz Node HTTP paneli, DuckDB depolama. Grafikler elle yazılmış SVG — grafik kütüphanesi ve derleme adımı yok. MCP server (Faz 4) yol haritasında.

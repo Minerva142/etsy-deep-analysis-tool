@@ -31,6 +31,12 @@ importers:
         specifier: workspace:*
         version: link:../../packages/core
 
+  apps/web:
+    dependencies:
+      '@etsy-analysis/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+
   packages/core:
     dependencies:
       '@duckdb/node-api':

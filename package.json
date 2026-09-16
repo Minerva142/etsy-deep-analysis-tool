@@ -12,6 +12,7 @@
     "typecheck": "tsc -b",
     "snapshot": "tsx apps/cli/src/index.ts snapshot",
     "report": "tsx apps/cli/src/index.ts report",
+    "dashboard": "tsx apps/web/src/sunucu.ts",
     "inspect": "tsx scripts/inspect.ts"
   },
   "dependencies": {

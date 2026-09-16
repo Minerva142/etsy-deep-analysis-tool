@@ -30,7 +30,10 @@ export interface Db {
 }
 
 class DuckDb implements Db {
-  constructor(private readonly connection: DuckDBConnection) {}
+  constructor(
+    private readonly connection: DuckDBConnection,
+    private readonly instance: DuckDBInstance,
+  ) {}
 
   async query<T = Record<string, unknown>>(
     sql: string,
@@ -50,13 +53,29 @@ class DuckDb implements Db {
     }
   }
 
+  /**
+   * Bağlantıyı VE instance'ı kapatır.
+   *
+   * Yalnızca bağlantıyı kapatmak dosya kilidini bırakmıyor: aynı süreç
+   * içinde ikinci bir açılış "file is already open" ile düşüyor. Tek
+   * seferlik CLI koşusunda fark etmiyordu, istek başına açan sunucuda
+   * ilk istekten sonrasını bozuyordu.
+   */
   async close(): Promise<void> {
     this.connection.closeSync();
+    this.instance.closeSync();
   }
 }
 
-export async function openDb(path: string): Promise<Db> {
-  const instance = await DuckDBInstance.create(path);
+export interface OpenDbOptions {
+  /** Panel gibi yalnızca okuyan tüketiciler için. */
+  readOnly?: boolean;
+}
+
+export async function openDb(path: string, options: OpenDbOptions = {}): Promise<Db> {
+  const config: Record<string, string> =
+    options.readOnly === true && path !== ':memory:' ? { access_mode: 'READ_ONLY' } : {};
+  const instance = await DuckDBInstance.create(path, config);
   const connection = await instance.connect();
-  return new DuckDb(connection);
+  return new DuckDb(connection, instance);
 }
