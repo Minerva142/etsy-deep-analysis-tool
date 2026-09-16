@@ -14,8 +14,16 @@ export function sayi(value: number | null | undefined, basamak = 2): string {
   return value.toFixed(basamak);
 }
 
-export function para(value: number | null | undefined): string {
-  return sayi(value, 2);
+/**
+ * Fiyat. `kur` verilirse kod da yazılır.
+ *
+ * Etsy fiyatları satıcının para biriminde geliyor; kodu göstermeden bir
+ * fiyat yazmak, farklı birimleri aynı sayıymış gibi okutuyordu.
+ */
+export function para(value: number | null | undefined, kur?: string | null): string {
+  const s = sayi(value, 2);
+  if (s === OLCULEMEDI || kur === undefined || kur === null || kur === '') return s;
+  return `${s} ${kur}`;
 }
 
 export function yuzde(value: number | null | undefined, basamak = 1): string {

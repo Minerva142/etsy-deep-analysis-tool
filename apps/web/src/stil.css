@@ -22,7 +22,8 @@
   --vurgu: #1f5f3f;
   --vurgu-zemin: rgba(31, 95, 63, 0.09);
   --seri: #1a7a4a;
-  --firsat: #eb6834;
+  --firsat: #eb6834;            /* grafik markasi - kategorik dogrulamayi gecti */
+  --firsat-metin: #b8441a;      /* YAZI - 5.01:1, WCAG 4.5 tabanini gecer */
   --firsat-zemin: rgba(235, 104, 52, 0.10);
 
   /* Tek hue yeşil ramp — ısı haritası için, açıktan koyuya */
@@ -50,6 +51,7 @@
     --vurgu-zemin: rgba(79, 174, 130, 0.14);
     --seri: #2da47a;
     --firsat: #d95926;
+    --firsat-metin: #e2683a;    /* 5.36:1 koyu zeminde */
     --firsat-zemin: rgba(217, 89, 38, 0.18);
 
     --ramp-0: #1b2420;
@@ -144,7 +146,7 @@ h1 {
   line-height: 1.17;
   font-weight: 400;
   letter-spacing: -0.015em;
-  max-width: 23ch;
+  max-width: 26ch;
   text-wrap: pretty;
 }
 .giris {
@@ -160,12 +162,12 @@ h1 {
 
 .sayi-seridi {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
   border-top: 1px solid var(--hairline);
   border-bottom: 1px solid var(--hairline);
   margin: 44px 0;
 }
-.sayi-hucre { padding: 20px 24px; border-left: 1px solid var(--hairline); }
+.sayi-hucre { padding: 20px 22px; border-left: 1px solid var(--hairline); min-width: 0; }
 .sayi-hucre:first-child { padding-left: 0; border-left: 0; }
 .sayi-etiket { margin: 0 0 6px; font-size: 13px; color: var(--soluk); }
 .sayi-deger {
@@ -176,7 +178,10 @@ h1 {
   line-height: 1.15;
   font-variant-numeric: tabular-nums;
 }
-.sayi-alt { margin: 5px 0 0; font-size: 13px; color: var(--soluk); }
+.sayi-alt {
+  margin: 5px 0 0; font-size: 12.5px; color: var(--soluk);
+  line-height: 1.4; text-wrap: pretty;
+}
 .olculemedi { color: var(--soluk); }
 
 /* --- Bölüm: sol etiket sütunu + içerik --------------------------- */
@@ -189,6 +194,15 @@ h1 {
   padding: 32px 0;
 }
 .bolum:last-of-type { padding-bottom: 8px; }
+/* Grafik bölümü: etiket yanda değil ÜSTTE, gövde tam genişlikte.
+   Grafikler 912 px'e göre çiziliyor; 692 px'lik dar sütunda viewBox
+   ölçeklenir ve yazılar okunmaz hale gelirdi. */
+.bolum-genis { grid-template-columns: 1fr; gap: 18px; }
+.bolum-genis .bolum-basi {
+  display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
+}
+.bolum-genis .bolum-basi p { margin: 0; }
+
 .bolum-basi h2 {
   margin: 0;
   font-family: 'Newsreader', Georgia, serif;
@@ -205,13 +219,13 @@ h1 {
 /* --- Vurgu ve fırsat --------------------------------------------- */
 
 .vurgu-zemin { background: var(--vurgu-zemin); padding: 1px 5px; }
-.firsat { color: var(--firsat); }
-.firsat-zemin { background: var(--firsat-zemin); padding: 1px 5px; color: var(--firsat); }
+.firsat { color: var(--firsat-metin); }
+.firsat-zemin { background: var(--firsat-zemin); padding: 1px 5px; color: var(--firsat-metin); }
 .firsat-rozet {
   display: inline-block;
   padding: 1px 8px;
   background: var(--firsat-zemin);
-  color: var(--firsat);
+  color: var(--firsat-metin);
   font-size: 13px;
   font-weight: 500;
 }

@@ -1,3 +1,4 @@
+import { BASKIN_KUR, KURDA } from './para-birimi.js';
 import type { Db } from '../db/connection.js';
 
 export interface MarketOverview {
@@ -8,6 +9,19 @@ export interface MarketOverview {
   p75Price: number | null;
   avgVelocity: number | null;
   totalFavorers: number;
+  /**
+   * Fiyat istatistiklerinin ait olduğu para birimi.
+   *
+   * Etsy listing'leri satıcının kendi para biriminde geliyor; tek bir nişte
+   * yirmiden fazla birim bir arada olabiliyor. Bunları toplamak medyanı
+   * bozuyordu (ceramic-mug'da karışık medyan 29.00, yalnız USD 21.10).
+   * Kur çevirmek uydurma sayı üretmek olurdu; onun yerine fiyat
+   * istatistiklerini nişin baskın para birimine kısıtlayıp hangi birim
+   * olduğunu ve kaç listing'i kapsadığını söylüyoruz.
+   */
+  priceCurrency: string | null;
+  /** Fiyat istatistiklerine giren listing sayısı (baskın para biriminde). */
+  pricedCount: number;
 }
 
 export interface Freshness {
@@ -32,19 +46,27 @@ export async function getMarketOverview(
   nicheId: string,
 ): Promise<MarketOverview | null> {
   const rows = await db.query<Record<string, unknown>>(
-    `select
-        count(*)                            as listing_count,
-        count(distinct l.shop_id)           as seller_count,
-        median(v.price_amount)              as median_price,
-        quantile_cont(v.price_amount, 0.25) as p25_price,
-        quantile_cont(v.price_amount, 0.75) as p75_price,
-        avg(v.favorite_velocity)            as avg_velocity,
-        sum(coalesce(v.num_favorers, 0))    as total_favorers
-       from v_listing_velocity v
-       join v_latest_snapshot s
-         on s.niche_id = v.niche_id and s.snapshot_id = v.snapshot_id
-       join listings l on l.listing_id = v.listing_id
-      where v.niche_id = $niche`,
+    `with son as (
+        select v.price_amount, v.currency_code, v.num_favorers,
+               v.favorite_velocity, l.shop_id
+          from v_listing_velocity v
+          join v_latest_snapshot s
+            on s.niche_id = v.niche_id and s.snapshot_id = v.snapshot_id
+          join listings l on l.listing_id = v.listing_id
+         where v.niche_id = $niche
+     ),
+     baskin as (${BASKIN_KUR})
+     select
+        count(*)                          as listing_count,
+        count(distinct shop_id)           as seller_count,
+        (select kur from baskin)          as price_currency,
+        count(*) filter (${KURDA})        as priced_count,
+        median(price_amount) filter (${KURDA})              as median_price,
+        quantile_cont(price_amount, 0.25) filter (${KURDA}) as p25_price,
+        quantile_cont(price_amount, 0.75) filter (${KURDA}) as p75_price,
+        avg(favorite_velocity)            as avg_velocity,
+        sum(coalesce(num_favorers, 0))    as total_favorers
+       from son`,
     { niche: nicheId },
   );
 
@@ -59,6 +81,8 @@ export async function getMarketOverview(
     p75Price: toNumberOrNull(row.p75_price),
     avgVelocity: toNumberOrNull(row.avg_velocity),
     totalFavorers: Number(row.total_favorers),
+    priceCurrency: row.price_currency === null ? null : String(row.price_currency),
+    pricedCount: Number(row.priced_count ?? 0),
   };
 }
 

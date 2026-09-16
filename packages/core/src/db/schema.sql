@@ -126,6 +126,7 @@ WITH ardisik AS (
     o.observed_at,
     o.num_favorers,
     o.price_amount,
+    o.currency_code,
     -- Bir onceki SATIR degil, en az 1 saat oncesindeki EN YAKIN gozlem.
     --
     -- Neden: formul gune boldugu icin 5 dakikalik araliktaki tek bir favori
@@ -150,6 +151,7 @@ SELECT
   observed_at,
   num_favorers,
   price_amount,
+  currency_code,
   CASE
     WHEN onceki_favori IS NULL THEN NULL
     ELSE (num_favorers - onceki_favori)

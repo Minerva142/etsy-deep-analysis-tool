@@ -12,6 +12,7 @@ export interface RiserRow {
   title: string | null;
   url: string | null;
   price: number | null;
+  currency: string | null;
   numFavorers: number;
   velocity: number;
 }
@@ -47,8 +48,8 @@ export async function getTopRisers(
   limit = 20,
 ): Promise<RiserRow[]> {
   const rows = await db.query<Record<string, unknown>>(
-    `select v.listing_id, l.title, l.url, v.price_amount, v.num_favorers,
-            v.favorite_velocity
+    `select v.listing_id, l.title, l.url, v.price_amount, v.currency_code,
+            v.num_favorers, v.favorite_velocity
        from v_listing_velocity v
        join v_latest_snapshot s
          on s.niche_id = v.niche_id and s.snapshot_id = v.snapshot_id
@@ -64,6 +65,7 @@ export async function getTopRisers(
     title: row.title === null ? null : String(row.title),
     url: row.url === null ? null : String(row.url),
     price: row.price_amount === null ? null : Number(row.price_amount),
+    currency: row.currency_code === null ? null : String(row.currency_code),
     numFavorers: Number(row.num_favorers ?? 0),
     velocity: Number(row.favorite_velocity),
   }));

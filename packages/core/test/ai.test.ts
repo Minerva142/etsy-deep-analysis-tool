@@ -106,6 +106,8 @@ describe('nisOzetiUret', () => {
       p75Price: 45.99,
       avgVelocity: null,
       totalFavorers: 21629,
+      priceCurrency: 'USD',
+      pricedCount: 199,
     },
     tazelik: { medianAgeDays: 128, newLast30Days: 65, newLast90Days: 75 },
     seri: [],

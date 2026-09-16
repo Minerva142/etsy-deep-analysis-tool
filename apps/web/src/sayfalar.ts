@@ -7,6 +7,7 @@ import {
   getLatestSnapshotId,
   getMarketOverview,
   getPriceDemandCurve,
+  getPriceHistogram,
   getReviewStats,
   getSellerTable,
   getTagQuadrant,
@@ -18,8 +19,15 @@ import {
   type RiserRow,
 } from '@etsy-analysis/core/analysis';
 import { semaHazirMi, withDb } from './lib/db.js';
-import { para, sayi, tamsayi, tarih } from './lib/format.js';
-import { boslukMatrisi, etiketKadrani, fiyatTalep, hizSerisi } from './grafikler.js';
+import { OLCULEMEDI, para, sayi, tamsayi, tarih } from './lib/format.js';
+import {
+  boslukMatrisi,
+  etiketKadrani,
+  etiketKullanimi,
+  fiyatHistogrami,
+  fiyatTalep,
+  hizSerisi,
+} from './grafikler.js';
 import { sparkline } from './sparkline.js';
 import {
   bolum,
@@ -40,6 +48,8 @@ const IKI_CEKIM_SEBEBI =
   'Favori hızı ardışık iki çekim arasındaki değişimden hesaplanıyor ve karşılaştırma en az bir saat öncesindeki gözlemle yapılıyor. Bu nişte henüz o aralık oluşmadı.';
 const IKI_CEKIM_COZUMU =
   'Yarın bir çekim daha alın; bu bölümler kendiliğinden dolacak.';
+const HIZ_YOK_COZUMU =
+  'Favoriler saat değil gün ölçeğinde değişiyor. Bir sonraki çekimi bugünkünden en az bir gün sonra alın.';
 
 /* Veri bütünlüğü: bu varsayılanlar tabloların boş kalmaması için seçildi. */
 const VARSAYILAN = { sayfa: 5, satici: 25, yorum: 25 };
@@ -144,7 +154,11 @@ function manset(
     );
   }
   if (ozet.medianPrice !== null) {
-    parcalar.push(`Medyan fiyat ${para(ozet.medianPrice)}.`);
+    parcalar.push(`Medyan fiyat ${para(ozet.medianPrice, ozet.priceCurrency)}${
+          ozet.priceCurrency === null || ozet.pricedCount >= ozet.listingCount
+            ? ''
+            : ` (${tamsayi(ozet.pricedCount)} listing bu birimde)`
+        }.`);
   }
   if (cekimSayisi < 2 || olculen.length === 0) {
     parcalar.push('Favori hızı henüz ölçülemedi.');
@@ -416,7 +430,19 @@ export async function nisOzetiSayfasi(
     const sayiSeridi = `<div class="sayi-seridi">
       ${sayiHucresi('Listing', deger(ozet?.listingCount, 'tamsayi'), 'son çekimde')}
       ${sayiHucresi('Satıcı', deger(ozet?.sellerCount, 'tamsayi'), konsantrasyon === null ? undefined : `HHI ${sayi(konsantrasyon.hhi, 3)}`)}
-      ${sayiHucresi('Medyan fiyat', deger(ozet?.medianPrice, 'para'), ozet === null ? undefined : `${para(ozet.p25Price)} – ${para(ozet.p75Price)} aralığında yarısı`)}
+      ${sayiHucresi(
+        'Medyan fiyat',
+        ozet === null || ozet.medianPrice === null
+          ? OLCULEMEDI
+          : para(ozet.medianPrice, ozet.priceCurrency),
+        ozet === null
+          ? undefined
+          : `${para(ozet.p25Price)} – ${para(ozet.p75Price)}${
+              ozet.priceCurrency === null || ozet.pricedCount >= ozet.listingCount
+                ? ''
+                : ` · ${tamsayi(ozet.pricedCount)} listing`
+            }`,
+      )}
       ${sayiHucresi('Listing yaşı', deger(tazelik?.medianAgeDays, 'tamsayi'), 'gün, medyan')}
       ${sayiHucresi('Favori hızı', deger(ozet?.avgVelocity, 'sayi'), cekimSayisi < 2 ? 'ikinci çekimle ölçülecek' : 'adet/gün')}
     </div>`;
@@ -444,7 +470,7 @@ export async function nisOzetiSayfasi(
                 ? `<span class="kirp">${esc(r.title ?? '(başlıksız)')}</span>`
                 : `<a class="kirp" href="${esc(r.url)}" target="_blank" rel="noreferrer">${esc(r.title ?? '(başlıksız)')}</a>`,
               deger(r.velocity, 'sayi'),
-              deger(r.price, 'para'),
+              r.price === null ? OLCULEMEDI : esc(para(r.price, r.currency)),
               deger(r.numFavorers, 'tamsayi'),
             ]),
         );
@@ -473,6 +499,7 @@ export async function nisOzetiSayfasi(
         ${bolum({
           baslik: 'Favori hızı',
           altBaslik: 'çekim başına ortalama, adet/gün',
+          genis: true,
           govde: hizGovde,
         })}
         ${bolum({
@@ -537,9 +564,10 @@ export async function firsatlarSayfasi(id: string): Promise<string | null> {
     const ai =
       cekimId === null ? { firsatAciklamasi: null } : await cachetenOku(db, cekimId);
 
-    const [cekimSayisi, bantlar, etiketler, hucreler] = await Promise.all([
+    const [cekimSayisi, bantlar, kovalar, etiketler, hucreler] = await Promise.all([
       countSnapshots(db, id),
       getPriceDemandCurve(db, id),
+      getPriceHistogram(db, id),
       getTagQuadrant(db, id),
       getGapMatrix(db, id),
     ]);
@@ -561,13 +589,34 @@ export async function firsatlarSayfasi(id: string): Promise<string | null> {
       });
     }
 
+    /*
+     * Üç analiz de talebi favori hızından okuyor. Hız her yerde sıfırsa
+     * ortada ölçülmüş bir talep yok: kadran tek çizgiye çöker, ısı haritası
+     * tek tona düşer ve "fırsat" rozeti yalnızca nadirliği ödüllendirir.
+     * Bu durumda talep tarafını iddia etmeyip ölçülmüş arz tarafını gösteririz.
+     */
+    const talepHareketli = etiketler.some(
+      (t) => Number.isFinite(t.avgVelocity) && t.avgVelocity > 0,
+    );
+    const toplamListing = kovalar.reduce((t, k) => t + k.count, 0);
+    const enKalabalikKova = kovalar.reduce(
+      (a, k) => (k.count > (a?.count ?? -1) ? k : a),
+      kovalar[0],
+    );
+
     const enIyi = firsatlar[0];
-    const baslik =
-      enIyi === undefined
+    const baslik = !talepHareketli
+      ? 'Talep sinyali bu aralıkta hiç kıpırdamadı.'
+      : enIyi === undefined
         ? 'Öne çıkan etiket fırsatı bulunamadı.'
         : `${String(firsatlar.length)} etiket getirisinin üstünde, kullanımının altında.`;
-    const giris =
-      enIyi === undefined
+    const giris = !talepHareketli
+      ? `İki çekim arasında hiçbir listing favori kazanmadı, dolayısıyla hiçbir etiket, bant ya da kategori “fırsat” diye ayrılamıyor. Aşağıdakiler ölçülmüş olan arz tarafı: ${tamsayi(toplamListing)} listing${
+          enKalabalikKova === undefined
+            ? ''
+            : `, en yoğun fiyat aralığı ${para(enKalabalikKova.from)} – ${para(enKalabalikKova.to, enKalabalikKova.currency)} (${tamsayi(enKalabalikKova.count)} listing)`
+        }.`
+      : enIyi === undefined
         ? 'Bu çekimde hiçbir etiket, medyanın üstünde getiri ile medyanın altında kullanımı bir arada taşımıyor.'
         : `En belirgini “${enIyi.tag}”: ${tamsayi(enIyi.usageCount)} listing’de geçiyor, ortalama ${sayi(enIyi.avgVelocity)} favori/gün taşıyor.`;
 
@@ -580,23 +629,31 @@ export async function firsatlarSayfasi(id: string): Promise<string | null> {
         <p class="giris">${esc(giris)}</p>
         <div style="margin-top:44px"></div>
         ${bolum({
-          baslik: 'Etiket kadranı',
-          altBaslik: 'kullanım × getiri',
-          govde: `${
-            firsatlar.length > 0
-              ? `<p style="margin:0 0 14px"><span class="firsat-rozet">${esc(tamsayi(firsatlar.length))} fırsat</span></p>`
-              : ''
-          }${etiketKadrani(etiketler)}`,
+          baslik: talepHareketli ? 'Etiket kadranı' : 'Etiket kullanımı',
+          altBaslik: talepHareketli ? 'kullanım × getiri' : 'etiket başına listing',
+          genis: true,
+          govde: talepHareketli
+            ? `${
+                firsatlar.length > 0
+                  ? `<p style="margin:0 0 14px"><span class="firsat-rozet">${esc(tamsayi(firsatlar.length))} fırsat</span></p>`
+                  : ''
+              }${etiketKadrani(etiketler)}`
+            : `${olculemediGovdesi(
+                'Kadranın dikey ekseni favori hızı; bu aralıkta hız her etikette sıfır olduğu için kadran çizilemiyor.',
+                HIZ_YOK_COZUMU,
+              )}<div style="margin-top:24px"></div>${etiketKullanimi(etiketler)}`,
         })}
         ${bolum({
-          baslik: 'Fiyat–talep',
-          altBaslik: 'bant başına arz ve talep',
-          govde: fiyatTalep(bantlar),
+          baslik: talepHareketli ? 'Fiyat–talep' : 'Fiyat dağılımı',
+          altBaslik: talepHareketli ? 'bant başına arz ve talep' : 'aralık başına listing',
+          genis: true,
+          govde: talepHareketli ? fiyatTalep(bantlar) : fiyatHistogrami(kovalar),
         })}
         ${bolum({
-          baslik: 'Boşluk matrisi',
+          baslik: talepHareketli ? 'Boşluk matrisi' : 'Yoğunluk matrisi',
           altBaslik: 'kategori × fiyat bandı',
-          govde: boslukMatrisi(hucreler),
+          genis: true,
+          govde: boslukMatrisi(hucreler, !talepHareketli),
         })}
         ${firsatAciklamasiBolumu(ai.firsatAciklamasi, id)}`,
     });
@@ -658,7 +715,7 @@ export async function rakiplerSayfasi(id: string): Promise<string | null> {
             : `<div class="sayi-seridi">
                 ${sayiHucresi('Satıcı', deger(konsantrasyon.sellerCount, 'tamsayi'))}
                 ${sayiHucresi('Top-10 payı', deger(konsantrasyon.top10Share, 'yuzde'))}
-                ${sayiHucresi('HHI', deger(konsantrasyon.hhi, 'sayi'), '1’e yakın = tekel')}
+                ${sayiHucresi('HHI', esc(sayi(konsantrasyon.hhi, 3)), '1’e yakın = tekel')}
               </div>`
         }
         ${bolum({
@@ -762,13 +819,14 @@ export async function listinglerSayfasi(
       title: string | null;
       url: string | null;
       price_amount: number | null;
+      currency_code: string | null;
       num_favorers: string | null;
       favorite_velocity: number | null;
       shop_name: string | null;
       shop_id: string | null;
     }>(
-      `select v.listing_id, l.title, l.url, v.price_amount, v.num_favorers,
-              v.favorite_velocity, sh.shop_name, l.shop_id
+      `select v.listing_id, l.title, l.url, v.price_amount, v.currency_code,
+              v.num_favorers, v.favorite_velocity, sh.shop_name, l.shop_id
          from v_listing_velocity v
          join v_latest_snapshot s
            on s.niche_id = v.niche_id and s.snapshot_id = v.snapshot_id
@@ -779,6 +837,13 @@ export async function listinglerSayfasi(
         limit 200`,
       parametreler,
     );
+
+    /* Fiyat sütunu satır başına kendi birimini taşıyor; kaç birim olduğunu da söyleriz. */
+    const kurlar = [
+      ...new Set(
+        satirlar.map((r) => r.currency_code).filter((k): k is string => k !== null),
+      ),
+    ].sort();
 
     const bag: NisBagi = { id, ad: nis.name };
     const yol = `/nis/${encodeURIComponent(id)}/listingler`;
@@ -835,7 +900,12 @@ export async function listinglerSayfasi(
         })}
         ${bolum({
           baslik: 'Listingler',
-          govde: tablo(
+          altBaslik: kurlar.length > 1 ? `${tamsayi(kurlar.length)} para birimi` : undefined,
+          govde: `${
+            kurlar.length > 1
+              ? `<p class="ikincil dar" style="margin-top:0">Bu listede ${esc(tamsayi(kurlar.length))} farklı para birimi var (${esc(kurlar.slice(0, 5).join(', '))}${kurlar.length > 5 ? '…' : ''}). Fiyat sıralaması ve fiyat filtresi sayıyı olduğu gibi karşılaştırır, kur çevirmez.</p>`
+              : ''
+          }${tablo(
             ['Başlık', 'Hız /gün', 'Fiyat', 'Favori'],
             satirlar.map((r) => [
               `${
@@ -848,11 +918,11 @@ export async function listinglerSayfasi(
                   : esc(r.shop_name)
               }</span>`,
               deger(r.favorite_velocity, 'sayi'),
-              deger(r.price_amount, 'para'),
+              r.price_amount === null ? OLCULEMEDI : esc(para(r.price_amount, r.currency_code)),
               deger(r.num_favorers === null ? null : Number(r.num_favorers), 'tamsayi'),
             ]),
             'Bu filtreyle eşleşen listing yok.',
-          ),
+          )}`,
         })}`,
     });
   });

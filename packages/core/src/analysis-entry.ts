@@ -34,8 +34,10 @@ export {
 } from './analysis/demand.js';
 export {
   getPriceDemandCurve,
+  getPriceHistogram,
   getGapMatrix,
   type PriceBand,
+  type PriceBin,
   type GapCell,
 } from './analysis/pricing.js';
 export { getTagQuadrant, type TagRow, type TagQuadrant } from './analysis/tags.js';

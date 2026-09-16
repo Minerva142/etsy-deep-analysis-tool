@@ -51,13 +51,20 @@ export function sayiHucresi(
   </div>`;
 }
 
-/** Sol etiket sütunlu rapor bölümü. */
+/**
+ * Rapor bölümü.
+ *
+ * Varsayılan: sol etiket sütunu + içerik. `genis` verildiğinde etiket
+ * üste çıkar ve gövde tam genişliği kullanır — grafikler için gerekli,
+ * dar sütunda viewBox ölçeklenip yazılar okunmaz oluyordu.
+ */
 export function bolum(options: {
   baslik: string;
   altBaslik?: string;
   govde: string;
+  genis?: boolean;
 }): string {
-  return `<section class="bolum">
+  return `<section class="bolum${options.genis === true ? ' bolum-genis' : ''}">
     <div class="bolum-basi">
       <h2>${esc(options.baslik)}</h2>
       ${options.altBaslik === undefined ? '' : `<p>${esc(options.altBaslik)}</p>`}
