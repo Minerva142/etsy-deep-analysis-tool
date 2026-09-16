@@ -45,3 +45,7 @@ export {
   type SellerRow,
   type Concentration,
 } from './analysis/sellers.js';
+
+// --- AI okuma yuzeyi: panel asla API cagirmaz ---
+export { cachetenOku } from './ai/insights.js';
+export type { NisOzeti, YorumTemalari, FirsatAciklamasi } from './ai/semalar.js';

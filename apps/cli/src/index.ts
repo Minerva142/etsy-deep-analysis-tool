@@ -28,6 +28,7 @@ import {
   type Niche,
 } from '@etsy-analysis/core';
 import { formatReport } from './report.js';
+import { insightsCalistir } from './insights.js';
 
 /** Canlı modda kotayı sınırlamak için üst sınırlar; hepsi opsiyonel. */
 export interface SnapshotLimits {
@@ -38,7 +39,8 @@ export interface SnapshotLimits {
 
 export type ParsedArgs =
   | { command: 'snapshot'; niche: Niche; limits: SnapshotLimits }
-  | { command: 'report'; nicheId: string };
+  | { command: 'report'; nicheId: string }
+  | { command: 'insights'; nicheId: string; force: boolean };
 
 function readFlag(argv: string[], name: string): string | null {
   const index = argv.indexOf(`--${name}`);
@@ -63,9 +65,15 @@ export function parseArgs(argv: string[]): ParsedArgs {
     return { command: 'report', nicheId };
   }
 
+  if (command === 'insights') {
+    const nicheId = readFlag(argv, 'niche');
+    if (nicheId === null) throw new Error('--niche gerekli');
+    return { command: 'insights', nicheId, force: argv.includes('--force') };
+  }
+
   if (command !== 'snapshot') {
     throw new Error(
-      `Bilinmeyen komut: ${String(command)}. Kullanılabilir: snapshot, report`,
+      `Bilinmeyen komut: ${String(command)}. Kullanılabilir: snapshot, report, insights`,
     );
   }
 
@@ -201,6 +209,13 @@ export async function main(argv: string[]): Promise<void> {
 
   if (parsed.command === 'report') {
     await runReport(db, parsed.nicheId);
+  } else if (parsed.command === 'insights') {
+    await insightsCalistir({
+      db,
+      config,
+      nicheId: parsed.nicheId,
+      force: parsed.force,
+    });
   } else {
     const client = new EtsyClient({
       config,

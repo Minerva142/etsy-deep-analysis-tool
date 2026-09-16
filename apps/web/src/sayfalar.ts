@@ -10,12 +10,19 @@ import {
   getTagQuadrant,
   getTopRisers,
   getVelocitySeries,
+  cachetenOku,
+  getLatestSnapshotId,
   type Db,
 } from '@etsy-analysis/core/analysis';
 import { semaHazirMi, withDb } from './lib/db.js';
 import { para, sayi, tamsayi, tarih } from './lib/format.js';
 import { boslukMatrisi, etiketKadrani, fiyatTalep, hizSerisi } from './grafikler.js';
 import { deger, esc, olculemediBolumu, sayfa, type NisBagi } from './html.js';
+import {
+  firsatAciklamasiBolumu,
+  nisOzetiBolumu,
+  yorumTemalariBolumu,
+} from './ai-bolumleri.js';
 
 const IKI_SNAPSHOT_SEBEBI =
   'Favori hızı ardışık iki snapshot arasındaki değişimden hesaplanıyor. Bu nişin şu an tek snapshot’ı var, bu yüzden hıza dayanan analizler ölçülemedi.';
@@ -133,6 +140,12 @@ export async function nisOzetiSayfasi(id: string): Promise<string | null> {
     const nis = await nisGetir(db, id);
     if (nis === null) return null;
 
+    const snapshotId = await getLatestSnapshotId(db, id);
+    const ai =
+      snapshotId === null
+        ? { nisOzeti: null, yorumTemalari: null, firsatAciklamasi: null }
+        : await cachetenOku(db, snapshotId);
+
     const [snapshotSayisi, ozet, tazelik, seri, yukselenler] = await Promise.all([
       countSnapshots(db, id),
       getMarketOverview(db, id),
@@ -213,6 +226,7 @@ export async function nisOzetiSayfasi(id: string): Promise<string | null> {
         <div class="yigin">
           <div class="izgara-2">${olcumDurumu}${tazelikBolumu}</div>
           ${pazar}
+          ${nisOzetiBolumu(ai.nisOzeti, id)}
           ${hizBolumu}
           ${yukselenBolumu}
         </div>`,
@@ -227,6 +241,12 @@ export async function firsatlarSayfasi(id: string): Promise<string | null> {
   return withDb(async (db) => {
     const nis = await nisGetir(db, id);
     if (nis === null) return null;
+
+    const firsatSnapshotId = await getLatestSnapshotId(db, id);
+    const firsatAi =
+      firsatSnapshotId === null
+        ? { firsatAciklamasi: null }
+        : await cachetenOku(db, firsatSnapshotId);
 
     const [snapshotSayisi, bantlar, etiketler, hucreler] = await Promise.all([
       countSnapshots(db, id),
@@ -265,6 +285,7 @@ export async function firsatlarSayfasi(id: string): Promise<string | null> {
             ${etiketKadrani(etiketler)}
           </section>
           <section class="kart"><h2>Boşluk matrisi</h2>${boslukMatrisi(hucreler)}</section>
+          ${firsatAciklamasiBolumu(firsatAi.firsatAciklamasi, id)}
         </div>`,
     });
   });
@@ -277,6 +298,12 @@ export async function rakiplerSayfasi(id: string): Promise<string | null> {
   return withDb(async (db) => {
     const nis = await nisGetir(db, id);
     if (nis === null) return null;
+
+    const rakipSnapshotId = await getLatestSnapshotId(db, id);
+    const rakipAi =
+      rakipSnapshotId === null
+        ? { yorumTemalari: null }
+        : await cachetenOku(db, rakipSnapshotId);
 
     const [saticilar, konsantrasyon, yorumlar] = await Promise.all([
       getSellerTable(db, id),
@@ -348,6 +375,7 @@ export async function rakiplerSayfasi(id: string): Promise<string | null> {
           </section>
           ${konsantrasyonBolumu}
           ${yorumBolumu}
+          ${yorumTemalariBolumu(rakipAi.yorumTemalari, id)}
         </div>`,
     });
   });

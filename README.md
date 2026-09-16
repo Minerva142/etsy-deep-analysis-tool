@@ -21,8 +21,8 @@ Etsy pazarını sistematik olarak analiz eden, local çalışan bir araç. Etsy 
 
 ## Durum
 
-**Faz 0, 1 ve 2 tamam:** veri boru hattı, analiz katmanı ve web paneli çalışıyor, canlı API'ye karşı doğrulandı.
-Sıradaki: Faz 3, AI katmanı. Yol haritası [tasarım dokümanında](docs/superpowers/specs/2026-09-16-etsy-deep-analysis-tool-design.md).
+**Faz 0, 1, 2 ve 3 tamam:** veri boru hattı, analiz katmanı, web paneli ve AI yorum katmanı çalışıyor, canlı API'ye karşı doğrulandı.
+Sıradaki: Faz 4, MCP server. Yol haritası [tasarım dokümanında](docs/superpowers/specs/2026-09-16-etsy-deep-analysis-tool-design.md).
 
 ## Kurulum
 
@@ -86,8 +86,30 @@ uydurulmaz.** Ölçülen sayı tam mürekkeple, ölçülemeyen soluk bir tireyle
 değerdir. Tek snapshot varken hıza dayanan bölümler boş tablo göstermek
 yerine neden ölçülemediğini ve ne yapılacağını söyler.
 
-## Docker
+## AI katmanı
 
+```bash
+pnpm insights --niche ceramic-mug            # cache varsa API'ye gitmez
+pnpm insights --niche ceramic-mug --force    # yeniden üretir
+```
+
+Üç yorum üretir: **niş özeti** (durum, trendler, üç aksiyon), **fırsat açıklaması**
+(fırsat, neden boş olabileceği, riskler, güven düzeyi) ve **yorum temaları**
+(düşük puanlı yorumlarda tekrar eden şikâyetler, ürün fırsatları).
+
+Temel kural: **sayıyı SQL üretir, model yorumlar.** Modele yalnızca ölçülmüş
+agregatlar verilir ve çıktı şemalarında serbest sayı alanı yoktur — model
+uydurma bir rakam yazabileceği bir yer bulamaz. Sistem promptu tahmini satış,
+gelir ve pazar büyüklüğü söylemesini açıkça yasaklar.
+
+Sonuçlar `ai_insights` tablosunda snapshot bazında saklanır. Bir snapshot'ın
+verisi değişmediği için yorumu da değişmez; **panel yalnızca cache'ten okur ve
+hiçbir sayfa açılışı API çağırmaz.**
+
+`ANTHROPIC_API_KEY` yoksa araç tam çalışmaya devam eder, yalnızca yorum
+katmanı kapalı kalır ve arayüz bunu açıkça söyler.
+
+## Docker
 ```bash
 docker compose build
 docker compose run --rm cli snapshot --niche ceramic-mug --name "Ceramic mugs" --keywords "ceramic mug"
@@ -102,7 +124,7 @@ Anahtarlar imaja gömülmez; çalışma anında host'taki `.env`'den okunur. Duc
 ## Geliştirme
 
 ```bash
-pnpm test        # 137 test, ağ erişimi gerektirmez (fixture modu)
+pnpm test        # 152 test, ağ erişimi gerektirmez (fixture modu)
 pnpm typecheck
 pnpm inspect     # ham veriye hızlı bakış
 ```

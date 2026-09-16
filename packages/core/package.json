@@ -9,7 +9,8 @@
     "./analysis": "./src/analysis-entry.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.125.0",
     "@duckdb/node-api": "1.5.5-r.5",
-    "zod": "^3.23.0"
+    "zod": "^3.25.76"
   }
 }

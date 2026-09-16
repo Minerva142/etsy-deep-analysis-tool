@@ -57,3 +57,26 @@ export {
   type SellerRow,
   type Concentration,
 } from './analysis/sellers.js';
+
+// --- AI katmani (Faz 3) ---
+export { anthropicIstemcisi, type AiIstemci, type AiSonuc } from './ai/client.js';
+export { insightOku, insightYaz } from './ai/cache.js';
+export {
+  INSIGHT_TIPLERI,
+  nisOzetiSemasi,
+  yorumTemalariSemasi,
+  firsatAciklamasiSemasi,
+  type NisOzeti,
+  type YorumTemalari,
+  type FirsatAciklamasi,
+  type InsightTipi,
+} from './ai/semalar.js';
+export {
+  nisOzetiUret,
+  yorumTemalariUret,
+  firsatAciklamasiUret,
+  cachetenOku,
+  type NisOzetiGirdisi,
+  type YorumGirdisi,
+  type FirsatGirdisi,
+} from './ai/insights.js';
