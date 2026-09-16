@@ -18,6 +18,7 @@ const niche: Niche = {
   taxonomyId: null,
   minPrice: null,
   maxPrice: null,
+  sortOn: 'score',
 };
 
 describe('runNicheSnapshot', () => {

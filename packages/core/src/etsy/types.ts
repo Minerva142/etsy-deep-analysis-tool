@@ -18,6 +18,8 @@ export const etsyListingSchema = z.object({
   taxonomy_id: z.number().nullable().optional(),
   tags: z.array(z.string()).nullable().optional(),
   created_timestamp: z.number().nullable().optional(),
+  // created_timestamp YENİLEME tarihidir; gerçek oluşturma bu alanda.
+  original_creation_timestamp: z.number().nullable().optional(),
   updated_timestamp: z.number().nullable().optional(),
   price: etsyPriceSchema.nullable().optional(),
 });

@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS niches (
   taxonomy_id BIGINT,
   min_price   DOUBLE,
   max_price   DOUBLE,
+  sort_on     VARCHAR NOT NULL DEFAULT 'score',
   created_at  TIMESTAMP NOT NULL,
   is_active   BOOLEAN NOT NULL DEFAULT true
 );
@@ -26,6 +27,7 @@ CREATE TABLE IF NOT EXISTS listings (
   description       VARCHAR,
   taxonomy_id       BIGINT,
   url               VARCHAR,
+  original_creation_timestamp TIMESTAMP,
   created_timestamp TIMESTAMP,
   first_seen_at     TIMESTAMP NOT NULL,
   last_seen_at      TIMESTAMP NOT NULL

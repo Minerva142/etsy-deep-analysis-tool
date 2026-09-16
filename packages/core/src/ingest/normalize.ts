@@ -8,6 +8,8 @@ export interface ListingRow {
   taxonomy_id: number | null;
   url: string | null;
   created_timestamp: Date | null;
+  /** Etsy'de created_timestamp yenileme tarihi; yaş hesabı bunu kullanır. */
+  original_creation_timestamp: Date | null;
 }
 
 export interface ObservationRow {
@@ -42,6 +44,10 @@ export function normalizeListing(listing: EtsyListing): NormalizedListing {
       taxonomy_id: orNull(listing.taxonomy_id),
       url: orNull(listing.url),
       created_timestamp: createdSeconds === null ? null : new Date(createdSeconds * 1000),
+      original_creation_timestamp:
+        listing.original_creation_timestamp == null
+          ? null
+          : new Date(listing.original_creation_timestamp * 1000),
     },
     observation: {
       listing_id: listing.listing_id,

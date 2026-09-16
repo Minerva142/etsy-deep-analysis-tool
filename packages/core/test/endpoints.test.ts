@@ -80,6 +80,36 @@ describe('fetchAllActiveListings', () => {
     expect(result.apiCalls).toBe(2);
   });
 
+  it('sortOn verilmediğinde score ile sorgular', async () => {
+    let captured: Record<string, unknown> | undefined;
+    const client = {
+      request: vi.fn(async (req: { params?: Record<string, unknown> }) => {
+        captured ??= req.params;
+        return { count: 0, results: [] };
+      }),
+    } as unknown as EtsyClient;
+
+    await fetchAllActiveListings(client, { keywords: 'mug' });
+
+    // Etsy varsayılanı 'created'; o örneklem her gün tamamen değiştiği için
+    // aynı listing iki snapshot'ta görünmüyor ve favori hızı ölçülemiyor.
+    expect(captured?.sort_on).toBe('score');
+  });
+
+  it('açıkça verilen sortOn değerine uyar', async () => {
+    let captured: Record<string, unknown> | undefined;
+    const client = {
+      request: vi.fn(async (req: { params?: Record<string, unknown> }) => {
+        captured ??= req.params;
+        return { count: 0, results: [] };
+      }),
+    } as unknown as EtsyClient;
+
+    await fetchAllActiveListings(client, { keywords: 'mug', sortOn: 'price' });
+
+    expect(captured?.sort_on).toBe('price');
+  });
+
   it('maxPages sınırına uyar', async () => {
     const client = {
       request: vi.fn(async () => fullPage),

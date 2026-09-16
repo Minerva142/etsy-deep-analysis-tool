@@ -11,10 +11,19 @@
       "url": "https://www.etsy.com/listing/1234567890",
       "num_favorers": 42,
       "taxonomy_id": 1633,
-      "tags": ["mug", "ceramic", "handmade"],
+      "tags": [
+        "mug",
+        "ceramic",
+        "handmade"
+      ],
       "created_timestamp": 1735689600,
       "updated_timestamp": 1757980800,
-      "price": { "amount": 2499, "divisor": 100, "currency_code": "USD" }
+      "price": {
+        "amount": 2499,
+        "divisor": 100,
+        "currency_code": "USD"
+      },
+      "original_creation_timestamp": 1666310400
     },
     {
       "listing_id": 9876543210,
@@ -26,10 +35,18 @@
       "url": "https://www.etsy.com/listing/9876543210",
       "num_favorers": 7,
       "taxonomy_id": 1633,
-      "tags": ["mug", "minimalist"],
+      "tags": [
+        "mug",
+        "minimalist"
+      ],
       "created_timestamp": 1751328000,
       "updated_timestamp": 1757980800,
-      "price": { "amount": 1800, "divisor": 100, "currency_code": "USD" }
+      "price": {
+        "amount": 1800,
+        "divisor": 100,
+        "currency_code": "USD"
+      },
+      "original_creation_timestamp": 1751328000
     }
   ]
 }

@@ -64,6 +64,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
       taxonomyId: readNumberFlag(argv, 'taxonomy-id'),
       minPrice: readNumberFlag(argv, 'min-price'),
       maxPrice: readNumberFlag(argv, 'max-price'),
+      sortOn: (readFlag(argv, 'sort-on') ?? 'score') as Niche['sortOn'],
     },
     limits: {
       maxPages: readNumberFlag(argv, 'max-pages'),

@@ -11,6 +11,7 @@ export interface Niche {
   taxonomyId: number | null;
   minPrice: number | null;
   maxPrice: number | null;
+  sortOn: 'created' | 'price' | 'updated' | 'score';
 }
 
 export async function upsertNiche(
@@ -20,8 +21,8 @@ export async function upsertNiche(
 ): Promise<void> {
   await db.runStatement(
     `insert or replace into niches
-       (niche_id, name, keywords, taxonomy_id, min_price, max_price, created_at, is_active)
-     values ($id, $name, $keywords, $taxonomyId, $minPrice, $maxPrice, $createdAt::TIMESTAMP, true)`,
+       (niche_id, name, keywords, taxonomy_id, min_price, max_price, created_at, is_active, sort_on)
+     values ($id, $name, $keywords, $taxonomyId, $minPrice, $maxPrice, $createdAt::TIMESTAMP, true, $sortOn)`,
     {
       id: niche.nicheId,
       name: niche.name,
@@ -30,6 +31,7 @@ export async function upsertNiche(
       minPrice: niche.minPrice,
       maxPrice: niche.maxPrice,
       createdAt: toDbTimestamp(now),
+      sortOn: niche.sortOn,
     },
   );
 }
@@ -69,6 +71,7 @@ export async function runNicheSnapshot(options: {
       taxonomyId: niche.taxonomyId ?? undefined,
       minPrice: niche.minPrice ?? undefined,
       maxPrice: niche.maxPrice ?? undefined,
+      sortOn: niche.sortOn,
     },
     { maxPages: options.maxPages },
   );
@@ -81,9 +84,10 @@ export async function runNicheSnapshot(options: {
     await db.runStatement(
       `insert into listings
          (listing_id, shop_id, title, description, taxonomy_id, url,
-          created_timestamp, first_seen_at, last_seen_at)
+          created_timestamp, original_creation_timestamp, first_seen_at, last_seen_at)
        values ($listingId, $shopId, $title, $description, $taxonomyId, $url,
-               $createdTimestamp::TIMESTAMP, $seenAt::TIMESTAMP, $seenAt::TIMESTAMP)
+               $createdTimestamp::TIMESTAMP, $originalCreatedTimestamp::TIMESTAMP,
+               $seenAt::TIMESTAMP, $seenAt::TIMESTAMP)
        on conflict (listing_id) do update set
          shop_id = excluded.shop_id,
          title = excluded.title,
@@ -91,6 +95,7 @@ export async function runNicheSnapshot(options: {
          taxonomy_id = excluded.taxonomy_id,
          url = excluded.url,
          created_timestamp = excluded.created_timestamp,
+         original_creation_timestamp = excluded.original_creation_timestamp,
          last_seen_at = excluded.last_seen_at`,
       {
         listingId: listing.listing_id,
@@ -103,6 +108,10 @@ export async function runNicheSnapshot(options: {
           listing.created_timestamp === null
             ? null
             : toDbTimestamp(listing.created_timestamp),
+        originalCreatedTimestamp:
+          listing.original_creation_timestamp === null
+            ? null
+            : toDbTimestamp(listing.original_creation_timestamp),
         seenAt: observedAt,
       },
     );

@@ -13,6 +13,13 @@ export type { EtsyListing };
 const PAGE_SIZE = 100;
 const DEFAULT_MAX_PAGES = 50;
 
+/**
+ * Etsy'nin varsayılanı `created` (newest-first). O örneklem her gün tamamen
+ * değiştiği için aynı listing iki ardışık snapshot'ta görünmez ve favori hızı
+ * hesaplanamaz. `score` kararlı ve temsili bir örneklem verir.
+ */
+const DEFAULT_SORT_ON = 'score' as const;
+
 export interface ActiveListingsQuery {
   keywords?: string;
   taxonomyId?: number;
@@ -41,7 +48,7 @@ export async function fetchAllActiveListings(
         taxonomy_id: query.taxonomyId,
         min_price: query.minPrice,
         max_price: query.maxPrice,
-        sort_on: query.sortOn,
+        sort_on: query.sortOn ?? DEFAULT_SORT_ON,
         sort_order: query.sortOrder,
       },
       ttlSeconds: TTL_SECONDS.listingSearch,

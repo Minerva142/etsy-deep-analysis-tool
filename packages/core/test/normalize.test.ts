@@ -52,6 +52,21 @@ describe('normalizeListing', () => {
     expect(normalizeListing({ ...base, tags: null }).tags).toEqual([]);
   });
 
+  it('original_creation_timestamp alanını ayrı saklar', () => {
+    const result = normalizeListing({
+      ...base,
+      created_timestamp: 1758000000,
+      original_creation_timestamp: 1666310400,
+    });
+    // created_timestamp yenileme tarihidir; yaş hesabı orijinali kullanır.
+    expect(result.listing.created_timestamp?.getUTCFullYear()).toBe(2025);
+    expect(result.listing.original_creation_timestamp?.getUTCFullYear()).toBe(2022);
+  });
+
+  it('original_creation_timestamp yoksa null döner', () => {
+    expect(normalizeListing(base).listing.original_creation_timestamp).toBeNull();
+  });
+
   it('opsiyonel alanlar eksikken null üretir', () => {
     const result = normalizeListing({ listing_id: 5 });
     expect(result.listing.shop_id).toBeNull();
