@@ -22,9 +22,8 @@ const bicimleyici: Record<Tip, (v: number | null | undefined) => string> = {
 /**
  * Ölçülen değeri tam mürekkeple, ölçülemeyeni soluk tireyle basar.
  *
- * Bu ayrım arayüzün taşıyıcı öğesi: araç ölçemediğini uydurmuyor ve bunu
- * görsel olarak da söylüyor. Birim yalnızca ölçülmüş değere eklenir —
- * "— /gün" okunmaz bir şey olurdu.
+ * Aracın dürüstlük iddiası bu ayrıma dayanıyor. Birim yalnızca ölçülmüş
+ * değere eklenir — "— /gün" okunmaz bir şey olurdu.
  */
 export function deger(
   value: number | null | undefined,
@@ -34,25 +33,46 @@ export function deger(
   const olculdu = value !== null && value !== undefined && Number.isFinite(value);
   const metin = esc(bicimleyici[tip](value));
   if (!olculdu) {
-    return `<span class="sayi olculemedi" title="Bu değer ölçülemedi">${metin}</span>`;
+    return `<span class="tnum olculemedi" title="Bu değer ölçülemedi">${metin}</span>`;
   }
-  return `<span class="sayi">${metin}${birim === undefined ? '' : ` ${esc(birim)}`}</span>`;
+  return `<span class="tnum">${metin}${birim === undefined ? '' : ` ${esc(birim)}`}</span>`;
+}
+
+/** Sayı şeridindeki tek hücre. */
+export function sayiHucresi(
+  etiket: string,
+  degerHtml: string,
+  alt?: string,
+): string {
+  return `<div class="sayi-hucre">
+    <p class="sayi-etiket">${esc(etiket)}</p>
+    <div class="sayi-deger">${degerHtml}</div>
+    ${alt === undefined ? '' : `<p class="sayi-alt">${esc(alt)}</p>`}
+  </div>`;
+}
+
+/** Sol etiket sütunlu rapor bölümü. */
+export function bolum(options: {
+  baslik: string;
+  altBaslik?: string;
+  govde: string;
+}): string {
+  return `<section class="bolum">
+    <div class="bolum-basi">
+      <h2>${esc(options.baslik)}</h2>
+      ${options.altBaslik === undefined ? '' : `<p>${esc(options.altBaslik)}</p>`}
+    </div>
+    <div class="bolum-govde">${options.govde}</div>
+  </section>`;
 }
 
 /**
- * Bir bölümün yerine geçer. Boş tablo göstermek "analiz bozuk" dedirtir;
- * onun yerine neden ölçülemediğini ve ne yapılacağını söyleriz.
+ * Ölçülemeyen bir bölümün gövdesi. Boş tablo "analiz bozuk" dedirtir;
+ * onun yerine nedenini ve ne yapılacağını söyleriz.
  */
-export function olculemediBolumu(
-  baslik: string,
-  sebep: string,
-  cozum?: string,
-): string {
-  return `<section class="kart">
-    <h2>${esc(baslik)}</h2>
-    <p class="olculemedi dar">${esc(sebep)}</p>
-    ${cozum === undefined ? '' : `<p class="ikincil dar">${esc(cozum)}</p>`}
-  </section>`;
+export function olculemediGovdesi(sebep: string, cozum?: string): string {
+  return `<p class="olculemedi dar">${esc(sebep)}</p>
+    ${cozum === undefined ? '' : `<p class="ikincil dar" style="margin-bottom:0">${esc(cozum)}</p>`}`;
 }
 
 export interface NisBagi {
@@ -60,30 +80,30 @@ export interface NisBagi {
   ad: string;
 }
 
-/** Sol raf: araç tekrar tekrar açılıyor, gezinme kalıcı olmalı. */
-function raf(nis: NisBagi | null, aktif: string): string {
+const AYLAR = [
+  'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
+  'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık',
+];
+
+function bugun(): string {
+  const d = new Date();
+  return `${String(d.getDate())} ${AYLAR[d.getMonth()] ?? ''} ${String(d.getFullYear())}`;
+}
+
+function gezinti(nis: NisBagi | null, aktif: string): string {
+  if (nis === null) return '';
+  const kok = `/nis/${encodeURIComponent(nis.id)}`;
   const bag = (yol: string, etiket: string): string =>
     `<a href="${esc(yol)}"${aktif === yol ? ' aria-current="page"' : ''}>${esc(etiket)}</a>`;
 
-  const nisBolumu =
-    nis === null
-      ? ''
-      : `<div class="raf-grup">
-           <p class="raf-grup-baslik">${esc(nis.ad)}</p>
-           <nav>
-             ${bag(`/nis/${encodeURIComponent(nis.id)}`, 'Özet')}
-             ${bag(`/nis/${encodeURIComponent(nis.id)}/firsatlar`, 'Fırsatlar')}
-             ${bag(`/nis/${encodeURIComponent(nis.id)}/rakipler`, 'Rakipler')}
-             ${bag(`/nis/${encodeURIComponent(nis.id)}/listingler`, 'Listingler')}
-           </nav>
-         </div>`;
-
-  return `<aside class="raf">
-    <p class="raf-baslik">Etsy Deep Analysis</p>
-    <p class="raf-alt">Ölçülen veri, tahmin yok</p>
-    <nav>${bag('/', 'Nişler')}</nav>
-    ${nisBolumu}
-  </aside>`;
+  return `<nav class="gezinti">
+    ${bag(kok, 'Özet')}
+    ${bag(`${kok}/firsatlar`, 'Fırsatlar')}
+    ${bag(`${kok}/rakipler`, 'Rakipler')}
+    ${bag(`${kok}/listingler`, 'Listingler')}
+    <span class="gezinti-bosluk"></span>
+    <a href="/">Tüm nişler</a>
+  </nav>`;
 }
 
 export function sayfa(options: {
@@ -91,6 +111,7 @@ export function sayfa(options: {
   icerik: string;
   nis?: NisBagi | null;
   aktif?: string;
+  kunyeNotu?: string;
 }): string {
   return `<!doctype html>
 <html lang="tr">
@@ -103,9 +124,13 @@ export function sayfa(options: {
 <link rel="stylesheet" href="/stil.css">
 </head>
 <body>
-<div class="kabuk">
-${raf(options.nis ?? null, options.aktif ?? '/')}
-<main class="icerik">${options.icerik}</main>
+<div class="sayfa">
+  <header class="kunye">
+    <span class="kunye-ad serif"><a href="/">Etsy Deep Analysis</a></span>
+    <span class="kunye-tarih tnum">${esc(options.kunyeNotu ?? bugun())}</span>
+  </header>
+  ${gezinti(options.nis ?? null, options.aktif ?? '/')}
+  ${options.icerik}
 </div>
 </body>
 </html>`;
@@ -114,7 +139,8 @@ ${raf(options.nis ?? null, options.aktif ?? '/')}
 export function hataSayfasi(baslik: string, mesaj: string): string {
   return sayfa({
     baslik,
-    icerik: `<h1>${esc(baslik)}</h1><p class="sayfa-alt">${esc(mesaj)}</p>
-      <p><a href="/">Nişlere dön</a></p>`,
+    icerik: `<h1>${esc(baslik)}</h1>
+      <p class="giris">${esc(mesaj)}</p>
+      <p style="margin-top:28px"><a href="/">Nişlere dön</a></p>`,
   });
 }

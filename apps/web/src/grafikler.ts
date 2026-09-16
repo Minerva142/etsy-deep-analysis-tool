@@ -80,8 +80,8 @@ export function hizSerisi(noktalar: VelocityPoint[]): string {
   const gridler = yTick
     .map(
       (t) =>
-        `<line x1="${x0}" x2="${x1}" y1="${yOf(t).toFixed(1)}" y2="${yOf(t).toFixed(1)}" stroke="var(--grid)" stroke-width="1"/>
-         <text x="${x0 - 8}" y="${(yOf(t) + 4).toFixed(1)}" text-anchor="end" font-size="11" fill="var(--ink-muted)">${esc(sayi(t, 1))}</text>`,
+        `<line x1="${x0}" x2="${x1}" y1="${yOf(t).toFixed(1)}" y2="${yOf(t).toFixed(1)}" stroke="var(--izgara)" stroke-width="1"/>
+         <text x="${x0 - 8}" y="${(yOf(t) + 4).toFixed(1)}" text-anchor="end" font-size="11" fill="var(--soluk)">${esc(sayi(t, 1))}</text>`,
     )
     .join('');
 
@@ -89,7 +89,7 @@ export function hizSerisi(noktalar: VelocityPoint[]): string {
     .map(
       (n, i) =>
         `<circle cx="${xOf(i).toFixed(1)}" cy="${yOf(n.avgVelocity ?? 0).toFixed(1)}" r="4.5"
-           fill="var(--seri-1)" stroke="var(--surface)" stroke-width="2">
+           fill="var(--seri)" stroke="var(--kagit)" stroke-width="2">
            <title>${esc(n.observedAt)} · ${esc(sayi(n.avgVelocity))} /gün</title>
          </circle>`,
     )
@@ -99,14 +99,14 @@ export function hizSerisi(noktalar: VelocityPoint[]): string {
     .map((n, i) => {
       if (i !== 0 && i !== olculen.length - 1) return '';
       const anchor = i === 0 ? 'start' : 'end';
-      return `<text x="${xOf(i).toFixed(1)}" y="${H - 12}" text-anchor="${anchor}" font-size="11" fill="var(--ink-muted)">${esc(n.observedAt.slice(0, 10))}</text>`;
+      return `<text x="${xOf(i).toFixed(1)}" y="${H - 12}" text-anchor="${anchor}" font-size="11" fill="var(--soluk)">${esc(n.observedAt.slice(0, 10))}</text>`;
     })
     .join('');
 
   return `<svg class="grafik" viewBox="0 0 ${W} ${H}" role="img" aria-label="Ortalama favori hızının zaman içindeki seyri">
     ${gridler}
-    <line x1="${x0}" x2="${x1}" y1="${y0}" y2="${y0}" stroke="var(--grid)" stroke-width="1"/>
-    <path d="${cizgi}" fill="none" stroke="var(--seri-1)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <line x1="${x0}" x2="${x1}" y1="${y0}" y2="${y0}" stroke="var(--izgara)" stroke-width="1"/>
+    <path d="${cizgi}" fill="none" stroke="var(--seri)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
     ${isaretciler}${xEtiket}
   </svg>
   ${tabloGorunumu(
@@ -138,8 +138,8 @@ export function fiyatTalep(bantlar: PriceBand[]): string {
   const gridler = yTick
     .map((t) => {
       const y = olcek(t, [0, yUst], [y0, y1]);
-      return `<line x1="${x0}" x2="${x1}" y1="${y.toFixed(1)}" y2="${y.toFixed(1)}" stroke="var(--grid)" stroke-width="1"/>
-        <text x="${x0 - 8}" y="${(y + 4).toFixed(1)}" text-anchor="end" font-size="11" fill="var(--ink-muted)">${esc(sayi(t, 1))}</text>`;
+      return `<line x1="${x0}" x2="${x1}" y1="${y.toFixed(1)}" y2="${y.toFixed(1)}" stroke="var(--izgara)" stroke-width="1"/>
+        <text x="${x0 - 8}" y="${(y + 4).toFixed(1)}" text-anchor="end" font-size="11" fill="var(--soluk)">${esc(sayi(t, 1))}</text>`;
     })
     .join('');
 
@@ -150,20 +150,20 @@ export function fiyatTalep(bantlar: PriceBand[]): string {
       const h = Math.max(0, y0 - y);
       return `<g>
         <rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${cubukGen.toFixed(1)}" height="${h.toFixed(1)}"
-              rx="4" fill="var(--seri-1)">
+              rx="4" fill="var(--seri)">
           <title>${esc(para(b.minPrice))}–${esc(para(b.maxPrice))} · arz ${esc(tamsayi(b.supply))} · talep/listing ${esc(sayi(b.demandPerListing))}</title>
         </rect>
         <text x="${(x + cubukGen / 2).toFixed(1)}" y="${(y - 5).toFixed(1)}" text-anchor="middle"
-              font-size="10.5" fill="var(--ink-muted)">${esc(tamsayi(b.supply))}</text>
+              font-size="10.5" fill="var(--soluk)">${esc(tamsayi(b.supply))}</text>
         <text x="${(x + cubukGen / 2).toFixed(1)}" y="${H - 12}" text-anchor="middle"
-              font-size="10.5" fill="var(--ink-muted)">${esc(para(b.minPrice))}</text>
+              font-size="10.5" fill="var(--soluk)">${esc(para(b.minPrice))}</text>
       </g>`;
     })
     .join('');
 
   return `<svg class="grafik" viewBox="0 0 ${W} ${H}" role="img" aria-label="Fiyat bandına göre listing başına talep">
     ${gridler}
-    <line x1="${x0}" x2="${x1}" y1="${y0}" y2="${y0}" stroke="var(--grid)" stroke-width="1"/>
+    <line x1="${x0}" x2="${x1}" y1="${y0}" y2="${y0}" stroke="var(--izgara)" stroke-width="1"/>
     ${cubuklar}
   </svg>
   <p class="grafik-alt">Çubuk yüksekliği listing başına talep; çubuğun üstündeki sayı o banttaki arz (listing adedi). Alt eksen bandın alt fiyat sınırı.</p>
@@ -218,7 +218,7 @@ export function etiketKadrani(etiketler: TagRow[]): string {
     .map((t) => {
       const firsat = t.quadrant === 'firsat';
       return `<circle cx="${xOf(t.usageCount).toFixed(1)}" cy="${yOf(t.avgVelocity).toFixed(1)}" r="5"
-        fill="${firsat ? 'var(--firsat)' : 'var(--seri-1)'}" stroke="var(--surface)" stroke-width="2">
+        fill="${firsat ? 'var(--firsat)' : 'var(--seri)'}" stroke="var(--kagit)" stroke-width="2">
         <title>${esc(t.tag)} · ${esc(tamsayi(t.usageCount))} listing · ${esc(sayi(t.avgVelocity))} /gün</title>
       </circle>`;
     })
@@ -231,20 +231,20 @@ export function etiketKadrani(etiketler: TagRow[]): string {
     .map(
       (t) =>
         `<text x="${(xOf(t.usageCount) + 9).toFixed(1)}" y="${(yOf(t.avgVelocity) + 4).toFixed(1)}"
-           font-size="11" fill="var(--ink-2)">${esc(t.tag.slice(0, 22))}</text>`,
+           font-size="11" fill="var(--murekkep-2)">${esc(t.tag.slice(0, 22))}</text>`,
     )
     .join('');
 
   return `<svg class="grafik" viewBox="0 0 ${W} ${H}" role="img" aria-label="Etiketlerin kullanım sıklığına ve getirisine göre dağılımı">
     ${kadranZemin}
-    <line x1="${mx.toFixed(1)}" x2="${mx.toFixed(1)}" y1="${y1}" y2="${y0}" stroke="var(--grid)" stroke-width="1" stroke-dasharray="3 3"/>
-    <line x1="${x0}" x2="${x1}" y1="${my.toFixed(1)}" y2="${my.toFixed(1)}" stroke="var(--grid)" stroke-width="1" stroke-dasharray="3 3"/>
-    <line x1="${x0}" x2="${x1}" y1="${y0}" y2="${y0}" stroke="var(--grid)" stroke-width="1"/>
+    <line x1="${mx.toFixed(1)}" x2="${mx.toFixed(1)}" y1="${y1}" y2="${y0}" stroke="var(--izgara)" stroke-width="1" stroke-dasharray="3 3"/>
+    <line x1="${x0}" x2="${x1}" y1="${my.toFixed(1)}" y2="${my.toFixed(1)}" stroke="var(--izgara)" stroke-width="1" stroke-dasharray="3 3"/>
+    <line x1="${x0}" x2="${x1}" y1="${y0}" y2="${y0}" stroke="var(--izgara)" stroke-width="1"/>
     ${noktalar}${etiketMetni}
-    <text x="${x0}" y="${H - 12}" font-size="11" fill="var(--ink-muted)">az kullanılan</text>
-    <text x="${x1}" y="${H - 12}" text-anchor="end" font-size="11" fill="var(--ink-muted)">çok kullanılan</text>
-    <text x="${x0 - 8}" y="${y1 + 8}" text-anchor="end" font-size="11" fill="var(--ink-muted)">yüksek</text>
-    <text x="${x0 - 8}" y="${y0}" text-anchor="end" font-size="11" fill="var(--ink-muted)">düşük</text>
+    <text x="${x0}" y="${H - 12}" font-size="11" fill="var(--soluk)">az kullanılan</text>
+    <text x="${x1}" y="${H - 12}" text-anchor="end" font-size="11" fill="var(--soluk)">çok kullanılan</text>
+    <text x="${x0 - 8}" y="${y1 + 8}" text-anchor="end" font-size="11" fill="var(--soluk)">yüksek</text>
+    <text x="${x0 - 8}" y="${y0}" text-anchor="end" font-size="11" fill="var(--soluk)">düşük</text>
   </svg>
   <p class="grafik-alt">Turuncu bölge: getirisi medyanın üstünde ama az kullanılan etiketler. Dikey eksen etiket başına ortalama favori hızı, yatay eksen kaç listing&#39;de geçtiği.</p>
   ${tabloGorunumu(
@@ -283,7 +283,7 @@ export function boslukMatrisi(hucreler: GapCell[]): string {
   const basliklar = bantlar
     .map(
       (b, i) =>
-        `<text x="${etiketGen + i * hucreGen + hucreGen / 2}" y="16" text-anchor="middle" font-size="11" fill="var(--ink-muted)">${esc(String(b))}</text>`,
+        `<text x="${etiketGen + i * hucreGen + hucreGen / 2}" y="16" text-anchor="middle" font-size="11" fill="var(--soluk)">${esc(String(b))}</text>`,
     )
     .join('');
 
@@ -297,7 +297,7 @@ export function boslukMatrisi(hucreler: GapCell[]): string {
           );
           const x = etiketGen + sutun * hucreGen;
           if (h === undefined) {
-            return `<rect x="${x + 1}" y="${y + 1}" width="${hucreGen - 2}" height="${hucreYuk - 2}" rx="2" fill="none" stroke="var(--grid)" stroke-width="1"/>`;
+            return `<rect x="${x + 1}" y="${y + 1}" width="${hucreGen - 2}" height="${hucreYuk - 2}" rx="2" fill="none" stroke="var(--izgara)" stroke-width="1"/>`;
           }
           return `<rect x="${x + 1}" y="${y + 1}" width="${hucreGen - 2}" height="${hucreYuk - 2}" rx="2" fill="${rampAdimi(h.ratio)}">
             <title>${esc(kat)} · bant ${esc(String(bant))} · oran ${esc(sayi(h.ratio))} · arz ${esc(tamsayi(h.supply))}</title>
@@ -305,7 +305,7 @@ export function boslukMatrisi(hucreler: GapCell[]): string {
         })
         .join('');
       const kisa = kat.length > 38 ? `${kat.slice(0, 37)}…` : kat;
-      return `${hucrelerHtml}<text x="${etiketGen - 10}" y="${y + hucreYuk / 2 + 4}" text-anchor="end" font-size="11" fill="var(--ink-2)">${esc(kisa)}</text>`;
+      return `${hucrelerHtml}<text x="${etiketGen - 10}" y="${y + hucreYuk / 2 + 4}" text-anchor="end" font-size="11" fill="var(--murekkep-2)">${esc(kisa)}</text>`;
     })
     .join('');
 

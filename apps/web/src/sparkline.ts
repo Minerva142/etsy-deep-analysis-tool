@@ -31,8 +31,8 @@ export function sparkline(degerler: number[]): string {
   const etiket = `Favori hızının son ${String(degerler.length)} çekimdeki seyri`;
 
   return `<svg class="spark" viewBox="0 0 ${String(W)} ${String(H)}" role="img" aria-label="${etiket}">
-    <path d="${yol}" fill="none" stroke="var(--seri-1)" stroke-width="1.5"
+    <path d="${yol}" fill="none" stroke="var(--seri)" stroke-width="1.5"
           stroke-linejoin="round" stroke-linecap="round"/>
-    <circle cx="${sx.toFixed(1)}" cy="${sy.toFixed(1)}" r="2.2" fill="var(--seri-1)"/>
+    <circle cx="${sx.toFixed(1)}" cy="${sy.toFixed(1)}" r="2.2" fill="var(--seri)"/>
   </svg>`;
 }

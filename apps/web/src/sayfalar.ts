@@ -12,31 +12,36 @@ import {
   getTagQuadrant,
   getTopRisers,
   getVelocitySeries,
+  type Concentration,
   type Db,
+  type MarketOverview,
+  type RiserRow,
 } from '@etsy-analysis/core/analysis';
 import { semaHazirMi, withDb } from './lib/db.js';
 import { para, sayi, tamsayi, tarih } from './lib/format.js';
-import {
-  boslukMatrisi,
-  etiketKadrani,
-  fiyatTalep,
-  hizSerisi,
-} from './grafikler.js';
+import { boslukMatrisi, etiketKadrani, fiyatTalep, hizSerisi } from './grafikler.js';
 import { sparkline } from './sparkline.js';
-import { deger, esc, olculemediBolumu, sayfa, type NisBagi } from './html.js';
+import {
+  bolum,
+  deger,
+  esc,
+  olculemediGovdesi,
+  sayfa,
+  sayiHucresi,
+  type NisBagi,
+} from './html.js';
 import {
   firsatAciklamasiBolumu,
   nisOzetiBolumu,
   yorumTemalariBolumu,
 } from './ai-bolumleri.js';
 
-const IKI_SNAPSHOT_SEBEBI =
-  'Favori hızı ardışık iki snapshot arasındaki değişimden hesaplanıyor. Bu nişin şu an tek snapshot’ı var, bu yüzden hıza dayanan analizler ölçülemedi.';
-const IKI_SNAPSHOT_COZUMU =
-  'İkinci snapshot alındığında bu bölümler kendiliğinden dolacak. Snapshot’lar arasında en az bir saat olmalı.';
+const IKI_CEKIM_SEBEBI =
+  'Favori hızı ardışık iki çekim arasındaki değişimden hesaplanıyor ve karşılaştırma en az bir saat öncesindeki gözlemle yapılıyor. Bu nişte henüz o aralık oluşmadı.';
+const IKI_CEKIM_COZUMU =
+  'Yarın bir çekim daha alın; bu bölümler kendiliğinden dolacak.';
 
-/* Veri bütünlüğü: bu varsayılanlar tabloların boş kalmaması için seçildi.
-   Daha düşük değerler hızlı ama satıcı adları ve yorumlar eksik gelir. */
+/* Veri bütünlüğü: bu varsayılanlar tabloların boş kalmaması için seçildi. */
 const VARSAYILAN = { sayfa: 5, satici: 25, yorum: 25 };
 
 interface Nis {
@@ -55,7 +60,7 @@ async function nisGetir(db: Db, id: string): Promise<Nis | null> {
   return rows[0] ?? null;
 }
 
-function bildirimSeridi(mesaj: string | null, hata: boolean): string {
+function bildirim(mesaj: string | null, hata: boolean): string {
   if (mesaj === null || mesaj === '') return '';
   return `<div class="bildirim${hata ? ' bildirim-hata' : ''}" role="status">
     <p>${esc(mesaj)}</p>
@@ -83,23 +88,115 @@ function tablo(
   </table></div>`;
 }
 
-function kpi(
-  etiket: string,
-  degerHtml: string,
-  alt?: string,
-): string {
-  return `<div class="kpi">
-    <p class="kpi-etiket">${esc(etiket)}</p>
-    <div class="kpi-deger">${degerHtml}</div>
-    ${alt === undefined ? '' : `<p class="kpi-alt">${esc(alt)}</p>`}
-  </div>`;
+/**
+ * Manşet: sayfanın cevabı, ölçülen değerlerden kuruluyor.
+ *
+ * Hiçbir yargı ölçülmemiş bir sayıya dayanmıyor; ölçülemeyen durumda
+ * cümle bunu açıkça söylüyor.
+ */
+function manset(
+  ozet: MarketOverview | null,
+  konsantrasyon: Concentration | null,
+  cekimSayisi: number,
+  yukselenler: RiserRow[],
+): { baslik: string; giris: string } {
+  if (ozet === null) {
+    return {
+      baslik: 'Bu niş için henüz veri yok.',
+      giris:
+        'Aşağıdan bir çekim başlatın. İlk çekim pazarın anlık görüntüsünü alır; hareketi görmek için ikincisi gerekiyor.',
+    };
+  }
+
+  const dagitim =
+    konsantrasyon === null
+      ? null
+      : konsantrasyon.top10Share < 0.25
+        ? 'dağınık'
+        : konsantrasyon.top10Share < 0.5
+          ? 'orta yoğunlukta'
+          : 'yoğun';
+
+  const olculen = yukselenler.filter((r) => Number.isFinite(r.velocity));
+  const hareketli = olculen.filter((r) => r.velocity > 0);
+
+  let baslik: string;
+  if (cekimSayisi < 2 || olculen.length === 0) {
+    baslik =
+      dagitim === null
+        ? 'Pazarın anlık görüntüsü alındı.'
+        : `Pazar ${dagitim}, hareket henüz ölçülmedi.`;
+  } else if (hareketli.length === 0) {
+    baslik =
+      dagitim === null
+        ? 'Ölçüldü: bu aralıkta hiçbir listing favori kazanmadı.'
+        : `Pazar ${dagitim}, bu aralıkta hiçbir listing favori kazanmadı.`;
+  } else {
+    baslik = `Pazar ${dagitim ?? 'ölçüldü'}, ${String(hareketli.length)} listing favori kazanıyor.`;
+  }
+
+  const parcalar: string[] = [
+    `${tamsayi(ozet.listingCount)} listing, ${tamsayi(ozet.sellerCount)} satıcı.`,
+  ];
+  if (konsantrasyon !== null) {
+    parcalar.push(
+      `En büyük on satıcı listinglerin %${(konsantrasyon.top10Share * 100).toFixed(0)}’ini tutuyor.`,
+    );
+  }
+  if (ozet.medianPrice !== null) {
+    parcalar.push(`Medyan fiyat ${para(ozet.medianPrice)}.`);
+  }
+  if (cekimSayisi < 2 || olculen.length === 0) {
+    parcalar.push('Favori hızı henüz ölçülemedi.');
+  }
+
+  return { baslik, giris: parcalar.join(' ') };
+}
+
+/** Veriden çıkan, yapılabilir sonraki adımlar. */
+function siradakiAdimlar(options: {
+  cekimSayisi: number;
+  yukselenler: RiserRow[];
+  adsizSatici: number;
+  aiVar: boolean;
+}): string[] {
+  const adimlar: string[] = [];
+  const olculen = options.yukselenler.filter((r) => Number.isFinite(r.velocity));
+
+  if (options.cekimSayisi < 2 || olculen.length === 0) {
+    adimlar.push(
+      'Yarın bir çekim daha alın — hız analizleri ancak gün ölçeğinde anlam kazanıyor.',
+    );
+  } else if (olculen.every((r) => r.velocity === 0)) {
+    adimlar.push(
+      'Çekimler arasında bir gün bırakın: bu aralıkta hiçbir favori değişmemiş, yani pencere çok dar.',
+    );
+  }
+
+  if (options.adsizSatici > 0) {
+    adimlar.push(
+      `${String(options.adsizSatici)} satıcının adı çekilmedi. Çekim formunda “satıcı detayı” sayısını artırın.`,
+    );
+  }
+
+  if (!options.aiVar) {
+    adimlar.push('AI yorumu üretin — ölçülen sayıları okunur bir özete çevirir.');
+  }
+
+  if (adimlar.length === 0) {
+    adimlar.push(
+      'Fırsatlar ekranındaki etiket kadranına bakın; kişiselleştirme benzeri desenler orada görünür.',
+    );
+  }
+
+  return adimlar;
 }
 
 /* --------------------------------------------------------------- */
 /* 1. Nişler                                                        */
 
 function nisEkleFormu(): string {
-  return `<details class="katlanir kart" style="margin-bottom:16px">
+  return `<details class="katlanir" style="border-top:1px solid var(--hairline);padding-top:32px">
     <summary>Yeni niş ekle</summary>
     <form method="post" action="/nis/ekle">
       <div class="form-izgara">
@@ -120,7 +217,6 @@ function nisEkleFormu(): string {
         <div class="alan">
           <label for="taxonomy_id">Kategori kimliği</label>
           <input id="taxonomy_id" name="taxonomy_id" inputmode="numeric" placeholder="1633">
-          <span class="ipucu">İsteğe bağlı. Aramayı daraltır.</span>
         </div>
         <div class="alan">
           <label for="min_price">En düşük fiyat</label>
@@ -150,7 +246,7 @@ function nisEkleFormu(): string {
 }
 
 export async function nislerSayfasi(
-  bildirim: string | null = null,
+  mesaj: string | null = null,
   hata = false,
 ): Promise<string> {
   const nisler = await withDb(async (db) => {
@@ -159,16 +255,16 @@ export async function nislerSayfasi(
       niche_id: string;
       name: string;
       keywords: string | null;
-      snapshot_sayisi: string;
-      son_snapshot: string | null;
-      listing_sayisi: string | null;
+      cekim: string;
+      son_cekim: string | null;
+      listing: string | null;
       hizlar: string | null;
     }>(`
       select
         n.niche_id, n.name, n.keywords,
-        count(s.snapshot_id) filter (where s.status = 'complete') as snapshot_sayisi,
-        max(s.started_at)    filter (where s.status = 'complete') as son_snapshot,
-        max(s.listing_count) filter (where s.status = 'complete') as listing_sayisi,
+        count(s.snapshot_id) filter (where s.status = 'complete') as cekim,
+        max(s.started_at)    filter (where s.status = 'complete') as son_cekim,
+        max(s.listing_count) filter (where s.status = 'complete') as listing,
         (select string_agg(cast(round(h, 3) as varchar), ',' order by an)
            from (select v.snapshot_id, min(v.observed_at) as an,
                         avg(v.favorite_velocity) as h
@@ -183,43 +279,63 @@ export async function nislerSayfasi(
     `);
   });
 
-  const liste =
+  const toplamListing = nisler.reduce(
+    (t, n) => t + (n.listing === null ? 0 : Number(n.listing)),
+    0,
+  );
+  const olcumeHazir = nisler.filter((n) => Number(n.cekim) >= 2).length;
+
+  const govde =
     nisler.length === 0
-      ? `<div class="kart bos">
-           <h2>Henüz takip edilen niş yok</h2>
-           <p class="dar">Yukarıdaki formdan bir niş ekleyin, sonra o nişin sayfasından ilk çekimi başlatın.</p>
-         </div>`
-      : `<section class="kart">${tablo(
-          ['Niş', 'Snapshot', 'Listing', 'Hız eğrisi', 'Son çekim'],
+      ? `<p class="olculemedi dar">Henüz takip edilen niş yok.</p>
+         <p class="ikincil dar">Aşağıdaki formdan bir niş ekleyin, sonra o nişin sayfasından ilk çekimi başlatın.</p>`
+      : tablo(
+          ['Niş', 'Çekim', 'Listing', 'Hız eğrisi', 'Son çekim'],
           nisler.map((n) => {
-            const adet = Number(n.snapshot_sayisi);
+            const adet = Number(n.cekim);
             const noktalar =
               n.hizlar === null
                 ? []
                 : n.hizlar.split(',').map(Number).filter(Number.isFinite);
             return [
               `<a href="/nis/${encodeURIComponent(n.niche_id)}">${esc(n.name)}</a>
-               <div class="olculemedi">${esc(n.keywords ?? 'anahtar kelime yok')}</div>`,
+               <span class="alt-satir" style="display:block">${esc(n.keywords ?? 'anahtar kelime yok')}</span>`,
               adet < 2
-                ? `<span class="olculemedi" title="Hız analizleri için en az iki snapshot gerekiyor">${esc(tamsayi(adet))}</span>`
+                ? `<span class="olculemedi" title="Hız için en az iki çekim gerekiyor">${esc(tamsayi(adet))}</span>`
                 : esc(tamsayi(adet)),
-              n.listing_sayisi === null ? '—' : esc(tamsayi(Number(n.listing_sayisi))),
+              n.listing === null ? '—' : esc(tamsayi(Number(n.listing))),
               noktalar.length < 2
                 ? '<span class="olculemedi">—</span>'
                 : sparkline(noktalar),
-              `<span class="sayi">${esc(tarih(n.son_snapshot))}</span>`,
+              `<span class="tnum">${esc(tarih(n.son_cekim))}</span>`,
             ];
           }),
-        )}</section>`;
+        );
+
+  const m =
+    nisler.length === 0
+      ? {
+          baslik: 'Henüz hiçbir niş takip edilmiyor.',
+          giris: 'Bir niş ekleyerek başlayın.',
+        }
+      : {
+          baslik: `${String(nisler.length)} niş izleniyor.`,
+          giris: `Toplam ${tamsayi(toplamListing)} listing kayıtlı. ${
+            olcumeHazir === 0
+              ? 'Hiçbirinde henüz hız ölçülemiyor — bunun için nişte iki çekim gerekiyor.'
+              : `${String(olcumeHazir)} nişte hız ölçülebiliyor.`
+          }`,
+        };
 
   return sayfa({
     baslik: 'Nişler',
     aktif: '/',
-    icerik: `<div class="sayfa-basi"><h1>Nişler</h1></div>
-      <p class="sayfa-alt">Her niş için periyodik çekim yapılır. Talep analizleri ardışık çekimler arasındaki değişimden hesaplandığı için, ikinci çekim alınana kadar hız değerleri ölçülemez.</p>
-      ${bildirimSeridi(bildirim, hata)}
-      ${nisEkleFormu()}
-      ${liste}`,
+    icerik: `<h1>${esc(m.baslik)}</h1>
+      <p class="giris">${esc(m.giris)}</p>
+      ${bildirim(mesaj, hata)}
+      <div style="margin-top:44px"></div>
+      ${bolum({ baslik: 'Takip edilenler', govde })}
+      ${nisEkleFormu()}`,
   });
 }
 
@@ -228,186 +344,183 @@ export async function nislerSayfasi(
 
 function cekimFormu(id: string): string {
   const tahmin = VARSAYILAN.sayfa + 1 + VARSAYILAN.satici + VARSAYILAN.yorum;
-  return `<details class="katlanir kart">
-    <summary>Yeni çekim başlat</summary>
-    <form method="post" action="/nis/${encodeURIComponent(id)}/snapshot">
-      <div class="form-izgara">
-        <div class="alan">
-          <label for="max_pages">Listing sayfası</label>
-          <input id="max_pages" name="max_pages" inputmode="numeric" value="${String(VARSAYILAN.sayfa)}">
-          <span class="ipucu">Sayfa başına 100 listing.</span>
-        </div>
-        <div class="alan">
-          <label for="max_shops">Satıcı detayı</label>
-          <input id="max_shops" name="max_shops" inputmode="numeric" value="${String(VARSAYILAN.satici)}">
-          <span class="ipucu">Bu sayının dışındaki satıcılar adsız kalır.</span>
-        </div>
-        <div class="alan">
-          <label for="max_reviews">Yorum çekilecek listing</label>
-          <input id="max_reviews" name="max_reviews" inputmode="numeric" value="${String(VARSAYILAN.yorum)}">
-          <span class="ipucu">En çok favorilenenlerden başlar.</span>
-        </div>
+  return `<form method="post" action="/nis/${encodeURIComponent(id)}/snapshot">
+    <div class="form-izgara">
+      <div class="alan">
+        <label for="max_pages">Listing sayfası</label>
+        <input id="max_pages" name="max_pages" inputmode="numeric" value="${String(VARSAYILAN.sayfa)}">
+        <span class="ipucu">Sayfa başına 100 listing.</span>
       </div>
-      <div class="form-dip">
-        <button class="dugme dugme-birincil" type="submit">Çekimi başlat</button>
-        <span class="maliyet">Bu ayarlarla yaklaşık ${String(tahmin)} API çağrısı; yarım dakika kadar sürer ve sayfa o süre boyunca bekler.</span>
+      <div class="alan">
+        <label for="max_shops">Satıcı detayı</label>
+        <input id="max_shops" name="max_shops" inputmode="numeric" value="${String(VARSAYILAN.satici)}">
+        <span class="ipucu">Bu sayının dışındakiler adsız kalır.</span>
       </div>
-    </form>
-  </details>`;
+      <div class="alan">
+        <label for="max_reviews">Yorum çekilecek listing</label>
+        <input id="max_reviews" name="max_reviews" inputmode="numeric" value="${String(VARSAYILAN.yorum)}">
+        <span class="ipucu">En çok favorilenenlerden başlar.</span>
+      </div>
+    </div>
+    <div class="form-dip">
+      <button class="dugme dugme-birincil" type="submit">Çekimi başlat</button>
+      <span class="maliyet">Yaklaşık ${String(tahmin)} API çağrısı; yarım dakika kadar sürer ve sayfa o süre bekler.</span>
+    </div>
+  </form>`;
 }
 
 export async function nisOzetiSayfasi(
   id: string,
-  bildirim: string | null = null,
+  mesaj: string | null = null,
   hata = false,
 ): Promise<string | null> {
   return withDb(async (db) => {
     const nis = await nisGetir(db, id);
     if (nis === null) return null;
 
-    const snapshotId = await getLatestSnapshotId(db, id);
+    const cekimId = await getLatestSnapshotId(db, id);
     const ai =
-      snapshotId === null
+      cekimId === null
         ? { nisOzeti: null, yorumTemalari: null, firsatAciklamasi: null }
-        : await cachetenOku(db, snapshotId);
+        : await cachetenOku(db, cekimId);
 
-    const [snapshotSayisi, ozet, tazelik, seri, yukselenler, gecmis] = await Promise.all([
-      countSnapshots(db, id),
-      getMarketOverview(db, id),
-      getFreshness(db, id),
-      getVelocitySeries(db, id),
-      getTopRisers(db, id),
-      db.query<{
-        started_at: string;
-        listing_count: string;
-        api_calls: string;
-        status: string;
-      }>(
-        `select started_at, listing_count, api_calls, status
-           from snapshots where niche_id = $id order by started_at desc limit 10`,
-        { id },
-      ),
-    ]);
+    const [cekimSayisi, ozet, tazelik, seri, yukselenler, konsantrasyon, saticilar, gecmis] =
+      await Promise.all([
+        countSnapshots(db, id),
+        getMarketOverview(db, id),
+        getFreshness(db, id),
+        getVelocitySeries(db, id),
+        getTopRisers(db, id),
+        getConcentration(db, id),
+        getSellerTable(db, id, 50),
+        db.query<{
+          started_at: string;
+          listing_count: string;
+          api_calls: string;
+          status: string;
+        }>(
+          `select started_at, listing_count, api_calls, status
+             from snapshots where niche_id = $id order by started_at desc limit 8`,
+          { id },
+        ),
+      ]);
 
     const bag: NisBagi = { id, ad: nis.name };
     const yol = `/nis/${encodeURIComponent(id)}`;
+    const m = manset(ozet, konsantrasyon, cekimSayisi, yukselenler);
+    const adsiz = saticilar.filter((s) => s.shopName === null).length;
+    const hareketVar = yukselenler.some(
+      (r) => Number.isFinite(r.velocity) && r.velocity > 0,
+    );
 
-    const kpiSeridi = `<section class="kart">
-      <div class="kpi-serisi">
-        ${kpi('Çekim', esc(tamsayi(snapshotSayisi)), snapshotSayisi < 2 ? 'hız ölçülemiyor' : 'hız ölçülebiliyor')}
-        ${kpi('Listing', deger(ozet?.listingCount, 'tamsayi'))}
-        ${kpi('Satıcı', deger(ozet?.sellerCount, 'tamsayi'))}
-        ${kpi('Medyan fiyat', deger(ozet?.medianPrice, 'para'))}
-        ${kpi('Favori hızı', deger(ozet?.avgVelocity, 'sayi'), 'adet/gün')}
-      </div>
-    </section>`;
+    const sayiSeridi = `<div class="sayi-seridi">
+      ${sayiHucresi('Listing', deger(ozet?.listingCount, 'tamsayi'), 'son çekimde')}
+      ${sayiHucresi('Satıcı', deger(ozet?.sellerCount, 'tamsayi'), konsantrasyon === null ? undefined : `HHI ${sayi(konsantrasyon.hhi, 3)}`)}
+      ${sayiHucresi('Medyan fiyat', deger(ozet?.medianPrice, 'para'), ozet === null ? undefined : `${para(ozet.p25Price)} – ${para(ozet.p75Price)} aralığında yarısı`)}
+      ${sayiHucresi('Listing yaşı', deger(tazelik?.medianAgeDays, 'tamsayi'), 'gün, medyan')}
+      ${sayiHucresi('Favori hızı', deger(ozet?.avgVelocity, 'sayi'), cekimSayisi < 2 ? 'ikinci çekimle ölçülecek' : 'adet/gün')}
+    </div>`;
 
-    const pazar =
-      ozet === null
-        ? olculemediBolumu('Pazar görünümü', 'Bu niş için henüz gözlem yok.', 'Yukarıdan bir çekim başlatın.')
-        : `<section class="kart">
-            <h2>Pazar görünümü</h2>
-            <dl class="deger-listesi">
-              <dt>Fiyat aralığı</dt><dd>${deger(ozet.p25Price, 'para')} – ${deger(ozet.p75Price, 'para')} <span class="olculemedi">(p25–p75)</span></dd>
-              <dt>Toplam favori</dt><dd>${deger(ozet.totalFavorers, 'tamsayi')}</dd>
-              <dt>Örnekleme</dt><dd>${esc(nis.sort_on)}</dd>
-            </dl>
-          </section>`;
+    const hizGovde =
+      cekimSayisi < 2
+        ? olculemediGovdesi(IKI_CEKIM_SEBEBI, IKI_CEKIM_COZUMU)
+        : hizSerisi(seri);
 
-    const tazelikBolumu =
-      tazelik === null
-        ? olculemediBolumu('Tazelik', 'Oluşturma tarihi bilinen listing yok.')
-        : `<section class="kart">
-            <h2>Tazelik</h2>
-            <dl class="deger-listesi">
-              <dt>Medyan yaş</dt><dd>${deger(tazelik.medianAgeDays, 'tamsayi', 'gün')}</dd>
-              <dt>Son 30 günde yeni</dt><dd>${deger(tazelik.newLast30Days, 'tamsayi')}</dd>
-              <dt>Son 90 günde yeni</dt><dd>${deger(tazelik.newLast90Days, 'tamsayi')}</dd>
-            </dl>
-          </section>`;
+    const yukselenGovde = !hareketVar
+      ? olculemediGovdesi(
+          cekimSayisi < 2
+            ? IKI_CEKIM_SEBEBI
+            : 'Ölçüldü, ama bu aralıkta hiçbir listing favori kazanmamış.',
+          cekimSayisi < 2
+            ? IKI_CEKIM_COZUMU
+            : 'Favoriler gün ölçeğinde değişiyor; pencereyi genişletin.',
+        )
+      : tablo(
+          ['Başlık', 'Hız /gün', 'Fiyat', 'Favori'],
+          yukselenler
+            .slice(0, 10)
+            .map((r) => [
+              r.url === null
+                ? `<span class="kirp">${esc(r.title ?? '(başlıksız)')}</span>`
+                : `<a class="kirp" href="${esc(r.url)}" target="_blank" rel="noreferrer">${esc(r.title ?? '(başlıksız)')}</a>`,
+              deger(r.velocity, 'sayi'),
+              deger(r.price, 'para'),
+              deger(r.numFavorers, 'tamsayi'),
+            ]),
+        );
 
-    const hizBolumu =
-      snapshotSayisi < 2
-        ? olculemediBolumu('Favori hızı', IKI_SNAPSHOT_SEBEBI, IKI_SNAPSHOT_COZUMU)
-        : `<section class="kart"><h2>Favori hızı</h2>${hizSerisi(seri)}</section>`;
-
-    // Hepsi sıfırsa sıralama yoktur: rastgele on satır göstermek
-    // "bunlar yükseliyor" izlenimi verir. Ölçüldü ama hareket yok demek doğrusu.
-    const hareketYok =
-      yukselenler.length > 0 && yukselenler.every((r) => r.velocity === 0);
-
-    const yukselenBolumu =
-      snapshotSayisi < 2
-        ? ''
-        : hareketYok
-          ? `<section class="kart">
-              <h2>En hızlı yükselen listingler</h2>
-              <p class="olculemedi dar">Ölçüldü, ama hiçbir listing favori kazanmamış.
-                Çekimler arası süre favori hareketini yakalamak için fazla kısa olabilir —
-                favoriler gün ölçeğinde değişiyor.</p>
-            </section>`
-          : `<section class="kart">
-            <h2>En hızlı yükselen listingler</h2>
-            ${tablo(
-              ['Başlık', 'Hız /gün', 'Fiyat', 'Favori'],
-              yukselenler
-                .slice(0, 12)
-                .map((r) => [
-                  r.url === null
-                    ? `<span class="kirp">${esc(r.title ?? '(başlıksız)')}</span>`
-                    : `<a class="kirp" href="${esc(r.url)}" target="_blank" rel="noreferrer">${esc(r.title ?? '(başlıksız)')}</a>`,
-                  deger(r.velocity, 'sayi'),
-                  deger(r.price, 'para'),
-                  deger(r.numFavorers, 'tamsayi'),
-                ]),
-              'Ölçülebilen hız yok.',
-            )}
-          </section>`;
-
-    const gecmisBolumu = `<section class="kart">
-      <h2>Çekim geçmişi</h2>
-      ${tablo(
-        ['Zaman', 'Listing', 'API çağrısı', 'Durum'],
-        gecmis.map((g) => [
-          `<span class="sayi">${esc(tarih(g.started_at))}</span>`,
-          esc(tamsayi(Number(g.listing_count))),
-          esc(tamsayi(Number(g.api_calls))),
-          esc(g.status),
-        ]),
-        'Henüz çekim yapılmamış.',
-      )}
-    </section>`;
+    const adimlar = siradakiAdimlar({
+      cekimSayisi,
+      yukselenler,
+      adsizSatici: adsiz,
+      aiVar: ai.nisOzeti !== null,
+    });
 
     return sayfa({
       baslik: nis.name,
       nis: bag,
       aktif: yol,
-      icerik: `<div class="sayfa-basi">
-          <div>
-            <h1>${esc(nis.name)}</h1>
-            <p class="ikincil" style="margin:2px 0 0">${esc(nis.keywords ?? 'anahtar kelime yok')}</p>
-          </div>
-          <div class="eylemler">
-            <form method="post" action="${yol}/insight">
-              <button class="dugme" type="submit">AI yorumu üret</button>
-            </form>
-            <form method="post" action="${yol}/sil"
-                  onsubmit="return confirm('Bu niş ve tüm çekim geçmişi silinecek. Devam edilsin mi?')">
-              <button class="dugme dugme-tehlike" type="submit">Nişi sil</button>
-            </form>
-          </div>
-        </div>
-        <p class="sayfa-alt"></p>
-        ${bildirimSeridi(bildirim, hata)}
-        <div class="yigin">
-          ${kpiSeridi}
-          ${cekimFormu(id)}
-          <div class="izgara-2">${pazar}${tazelikBolumu}</div>
-          ${nisOzetiBolumu(ai.nisOzeti, id)}
-          ${hizBolumu}
-          ${yukselenBolumu}
-          ${gecmisBolumu}
-        </div>`,
+      icerik: `<p class="ust-etiket">${esc(nis.name)} · ${esc(nis.keywords ?? 'anahtar kelime yok')}</p>
+        <h1>${esc(m.baslik)}</h1>
+        <p class="giris">${esc(m.giris)}</p>
+        ${bildirim(mesaj, hata)}
+        ${sayiSeridi}
+        ${bolum({
+          baslik: 'Sıradaki adım',
+          govde: `<ol class="adimlar dar">${adimlar.map((a) => `<li>${esc(a)}</li>`).join('')}</ol>`,
+        })}
+        ${nisOzetiBolumu(ai.nisOzeti, id)}
+        ${bolum({
+          baslik: 'Favori hızı',
+          altBaslik: 'çekim başına ortalama, adet/gün',
+          govde: hizGovde,
+        })}
+        ${bolum({
+          baslik: 'Yükselenler',
+          altBaslik: 'en hızlı favori kazananlar',
+          govde: yukselenGovde,
+        })}
+        ${bolum({
+          baslik: 'Tazelik',
+          altBaslik: 'gerçek oluşturma tarihine göre',
+          govde:
+            tazelik === null
+              ? olculemediGovdesi('Oluşturma tarihi bilinen listing yok.')
+              : `<p class="dar" style="margin-top:0">Son 30 günde <span class="tnum">${esc(tamsayi(tazelik.newLast30Days))}</span>,
+                   son 90 günde <span class="tnum">${esc(tamsayi(tazelik.newLast90Days))}</span> yeni listing girmiş.
+                   Medyan yaş <span class="tnum">${esc(tamsayi(tazelik.medianAgeDays))}</span> gün.</p>`,
+        })}
+        ${bolum({
+          baslik: 'Yeni çekim',
+          altBaslik: 'API kotası harcar',
+          govde: cekimFormu(id),
+        })}
+        ${bolum({
+          baslik: 'Çekim geçmişi',
+          govde: tablo(
+            ['Zaman', 'Listing', 'API çağrısı', 'Durum'],
+            gecmis.map((g) => [
+              `<span class="tnum">${esc(tarih(g.started_at))}</span>`,
+              esc(tamsayi(Number(g.listing_count))),
+              esc(tamsayi(Number(g.api_calls))),
+              esc(g.status),
+            ]),
+            'Henüz çekim yapılmamış.',
+          ),
+        })}
+        ${bolum({
+          baslik: 'Niş ayarları',
+          govde: `<div class="eylem-satiri">
+              <form method="post" action="${yol}/insight">
+                <button class="dugme dugme-sade" type="submit">AI yorumu üret</button>
+              </form>
+              <form method="post" action="${yol}/sil"
+                    onsubmit="return confirm('Bu niş ve tüm çekim geçmişi silinecek. Devam edilsin mi?')">
+                <button class="dugme dugme-tehlike" type="submit">Nişi sil</button>
+              </form>
+            </div>
+            <p class="alt-satir" style="margin:14px 0 0">Örnekleme: ${esc(nis.sort_on)}</p>`,
+        })}`,
     });
   });
 }
@@ -420,13 +533,11 @@ export async function firsatlarSayfasi(id: string): Promise<string | null> {
     const nis = await nisGetir(db, id);
     if (nis === null) return null;
 
-    const firsatSnapshotId = await getLatestSnapshotId(db, id);
-    const firsatAi =
-      firsatSnapshotId === null
-        ? { firsatAciklamasi: null }
-        : await cachetenOku(db, firsatSnapshotId);
+    const cekimId = await getLatestSnapshotId(db, id);
+    const ai =
+      cekimId === null ? { firsatAciklamasi: null } : await cachetenOku(db, cekimId);
 
-    const [snapshotSayisi, bantlar, etiketler, hucreler] = await Promise.all([
+    const [cekimSayisi, bantlar, etiketler, hucreler] = await Promise.all([
       countSnapshots(db, id),
       getPriceDemandCurve(db, id),
       getTagQuadrant(db, id),
@@ -435,37 +546,59 @@ export async function firsatlarSayfasi(id: string): Promise<string | null> {
 
     const bag: NisBagi = { id, ad: nis.name };
     const yol = `/nis/${encodeURIComponent(id)}/firsatlar`;
+    const firsatlar = etiketler.filter((t) => t.quadrant === 'firsat');
 
-    if (snapshotSayisi < 2) {
+    if (cekimSayisi < 2) {
       return sayfa({
         baslik: `${nis.name} · Fırsatlar`,
         nis: bag,
         aktif: yol,
-        icerik: `<div class="sayfa-basi"><h1>Fırsatlar</h1></div>
-          <p class="sayfa-alt">Üç analiz de talebin nereye gittiğine bakıyor; talep ise favori hızından geliyor.</p>
-          ${olculemediBolumu('Fırsat analizleri ölçülemedi', IKI_SNAPSHOT_SEBEBI, IKI_SNAPSHOT_COZUMU)}`,
+        icerik: `<p class="ust-etiket">${esc(nis.name)}</p>
+          <h1>Fırsat analizleri henüz ölçülemedi.</h1>
+          <p class="giris">Üç analiz de talebin nereye gittiğine bakıyor; talep ise favori hızından geliyor.</p>
+          <div style="margin-top:44px"></div>
+          ${bolum({ baslik: 'Neden boş', govde: olculemediGovdesi(IKI_CEKIM_SEBEBI, IKI_CEKIM_COZUMU) })}`,
       });
     }
 
-    const firsatEtiketleri = etiketler.filter((t) => t.quadrant === 'firsat');
+    const enIyi = firsatlar[0];
+    const baslik =
+      enIyi === undefined
+        ? 'Öne çıkan etiket fırsatı bulunamadı.'
+        : `${String(firsatlar.length)} etiket getirisinin üstünde, kullanımının altında.`;
+    const giris =
+      enIyi === undefined
+        ? 'Bu çekimde hiçbir etiket, medyanın üstünde getiri ile medyanın altında kullanımı bir arada taşımıyor.'
+        : `En belirgini “${enIyi.tag}”: ${tamsayi(enIyi.usageCount)} listing’de geçiyor, ortalama ${sayi(enIyi.avgVelocity)} favori/gün taşıyor.`;
 
     return sayfa({
       baslik: `${nis.name} · Fırsatlar`,
       nis: bag,
       aktif: yol,
-      icerik: `<div class="sayfa-basi"><h1>Fırsatlar</h1></div>
-        <p class="sayfa-alt">Üçü de aynı soruya bakıyor: talebin arzı aştığı yer neresi?</p>
-        <div class="yigin">
-          <section class="kart"><h2>Fiyat–talep eğrisi</h2>${fiyatTalep(bantlar)}</section>
-          <section class="kart">
-            <h2>Etiket fırsat kadranı
-              ${firsatEtiketleri.length > 0 ? `<span class="firsat-rozet">${esc(tamsayi(firsatEtiketleri.length))} fırsat</span>` : ''}
-            </h2>
-            ${etiketKadrani(etiketler)}
-          </section>
-          <section class="kart"><h2>Boşluk matrisi</h2>${boslukMatrisi(hucreler)}</section>
-          ${firsatAciklamasiBolumu(firsatAi.firsatAciklamasi, id)}
-        </div>`,
+      icerik: `<p class="ust-etiket">${esc(nis.name)}</p>
+        <h1>${esc(baslik)}</h1>
+        <p class="giris">${esc(giris)}</p>
+        <div style="margin-top:44px"></div>
+        ${bolum({
+          baslik: 'Etiket kadranı',
+          altBaslik: 'kullanım × getiri',
+          govde: `${
+            firsatlar.length > 0
+              ? `<p style="margin:0 0 14px"><span class="firsat-rozet">${esc(tamsayi(firsatlar.length))} fırsat</span></p>`
+              : ''
+          }${etiketKadrani(etiketler)}`,
+        })}
+        ${bolum({
+          baslik: 'Fiyat–talep',
+          altBaslik: 'bant başına arz ve talep',
+          govde: fiyatTalep(bantlar),
+        })}
+        ${bolum({
+          baslik: 'Boşluk matrisi',
+          altBaslik: 'kategori × fiyat bandı',
+          govde: boslukMatrisi(hucreler),
+        })}
+        ${firsatAciklamasiBolumu(ai.firsatAciklamasi, id)}`,
     });
   });
 }
@@ -478,11 +611,8 @@ export async function rakiplerSayfasi(id: string): Promise<string | null> {
     const nis = await nisGetir(db, id);
     if (nis === null) return null;
 
-    const rakipSnapshotId = await getLatestSnapshotId(db, id);
-    const rakipAi =
-      rakipSnapshotId === null
-        ? { yorumTemalari: null }
-        : await cachetenOku(db, rakipSnapshotId);
+    const cekimId = await getLatestSnapshotId(db, id);
+    const ai = cekimId === null ? { yorumTemalari: null } : await cachetenOku(db, cekimId);
 
     const [saticilar, konsantrasyon, yorumlar] = await Promise.all([
       getSellerTable(db, id, 50),
@@ -492,75 +622,89 @@ export async function rakiplerSayfasi(id: string): Promise<string | null> {
 
     const bag: NisBagi = { id, ad: nis.name };
     const adsiz = saticilar.filter((s) => s.shopName === null).length;
+    const dusuk = yorumlar.ratingDistribution
+      .filter((r) => r.rating <= 3)
+      .reduce((t, r) => t + r.count, 0);
+    const toplamYorum = yorumlar.ratingDistribution.reduce((t, r) => t + r.count, 0);
 
-    const konsantrasyonBolumu =
+    const baslik =
       konsantrasyon === null
-        ? olculemediBolumu('Rekabet yoğunluğu', 'Satıcı verisi yok.')
-        : `<section class="kart">
-            <h2>Rekabet yoğunluğu</h2>
-            <div class="kpi-serisi">
-              ${kpi('Satıcı', deger(konsantrasyon.sellerCount, 'tamsayi'))}
-              ${kpi('Top-10 payı', deger(konsantrasyon.top10Share, 'yuzde'))}
-              ${kpi('HHI', deger(konsantrasyon.hhi, 'sayi'), '1’e yakın = tekel')}
-            </div>
-          </section>`;
+        ? 'Satıcı verisi yok.'
+        : konsantrasyon.top10Share < 0.25
+          ? 'Pazar dağınık, tek bir satıcı baskın değil.'
+          : konsantrasyon.top10Share < 0.5
+            ? 'Pazar orta yoğunlukta.'
+            : 'Pazar birkaç satıcının elinde.';
+
+    const giris =
+      konsantrasyon === null
+        ? 'Bu niş için satıcı çekilmemiş.'
+        : `${tamsayi(konsantrasyon.sellerCount)} satıcı listeleniyor; en büyük onu listinglerin %${(konsantrasyon.top10Share * 100).toFixed(0)}’ini tutuyor.${
+            toplamYorum > 0
+              ? ` Çekilen ${tamsayi(toplamYorum)} yorumun ${tamsayi(dusuk)} tanesi üç yıldız ve altı.`
+              : ''
+          }`;
 
     return sayfa({
       baslik: `${nis.name} · Rakipler`,
       nis: bag,
       aktif: `/nis/${encodeURIComponent(id)}/rakipler`,
-      icerik: `<div class="sayfa-basi"><h1>Rakipler</h1></div>
-        <p class="sayfa-alt">Bu nişte kimler var, pazar ne kadar dağınık ve alıcılar neden şikâyet ediyor?</p>
-        <div class="yigin">
-          ${konsantrasyonBolumu}
-          <section class="kart">
-            <h2>Satıcılar</h2>
-            ${
-              adsiz === 0
-                ? ''
-                : `<p class="grafik-alt" style="margin-top:0;margin-bottom:12px">${esc(String(adsiz))} satıcının adı çekilmemiş. Çekim formunda “satıcı detayı” sayısını artırıp yeni bir çekim alın.</p>`
-            }
-            ${tablo(
-              ['Satıcı', 'Listing', 'Hız /gün', 'Favori', 'Puan'],
-              saticilar.map((s) => [
-                s.shopName === null
-                  ? `<span class="olculemedi" title="Bu satıcının detayı çekilmedi">#${esc(String(s.shopId))} · ad çekilmedi</span>`
-                  : esc(s.shopName),
-                deger(s.listingCount, 'tamsayi'),
-                deger(s.avgVelocity, 'sayi'),
-                deger(s.totalFavorers, 'tamsayi'),
-                deger(s.reviewAverage, 'sayi'),
-              ]),
-              'Satıcı verisi yok.',
-            )}
-          </section>
-          <section class="kart">
-            <h2>Yorumlar</h2>
-            ${tablo(
-              ['Puan', 'Adet'],
-              yorumlar.ratingDistribution.map((r) => [
-                `${esc(String(r.rating))} yıldız`,
-                esc(tamsayi(r.count)),
-              ]),
-              'Yorum çekilmemiş.',
-            )}
-            ${
-              yorumlar.lowRated.length === 0
-                ? ''
-                : `<h2 style="margin-top:20px">Düşük puanlı yorumlar</h2>
-                   <ul class="dar" style="padding-left:18px;margin:0">
-                     ${yorumlar.lowRated
-                       .slice(0, 10)
-                       .map(
-                         (r) =>
-                           `<li><span class="sayi olculemedi">${esc(String(r.rating))}</span> ${esc(r.text.slice(0, 180))}</li>`,
-                       )
-                       .join('')}
-                   </ul>`
-            }
-          </section>
-          ${yorumTemalariBolumu(rakipAi.yorumTemalari, id)}
-        </div>`,
+      icerik: `<p class="ust-etiket">${esc(nis.name)}</p>
+        <h1>${esc(baslik)}</h1>
+        <p class="giris">${esc(giris)}</p>
+        ${
+          konsantrasyon === null
+            ? '<div style="margin-top:44px"></div>'
+            : `<div class="sayi-seridi">
+                ${sayiHucresi('Satıcı', deger(konsantrasyon.sellerCount, 'tamsayi'))}
+                ${sayiHucresi('Top-10 payı', deger(konsantrasyon.top10Share, 'yuzde'))}
+                ${sayiHucresi('HHI', deger(konsantrasyon.hhi, 'sayi'), '1’e yakın = tekel')}
+              </div>`
+        }
+        ${bolum({
+          baslik: 'Satıcılar',
+          altBaslik: adsiz > 0 ? `${String(adsiz)} tanesinin adı çekilmedi` : undefined,
+          govde: tablo(
+            ['Satıcı', 'Listing', 'Hız /gün', 'Favori', 'Puan'],
+            saticilar.map((s) => [
+              s.shopName === null
+                ? `<span class="olculemedi" title="Bu satıcının detayı çekilmedi">#${esc(String(s.shopId))} · ad çekilmedi</span>`
+                : esc(s.shopName),
+              deger(s.listingCount, 'tamsayi'),
+              deger(s.avgVelocity, 'sayi'),
+              deger(s.totalFavorers, 'tamsayi'),
+              deger(s.reviewAverage, 'sayi'),
+            ]),
+            'Satıcı verisi yok.',
+          ),
+        })}
+        ${bolum({
+          baslik: 'Yorumlar',
+          altBaslik: 'puan dağılımı',
+          govde: `${tablo(
+            ['Puan', 'Adet'],
+            yorumlar.ratingDistribution.map((r) => [
+              `${esc(String(r.rating))} yıldız`,
+              esc(tamsayi(r.count)),
+            ]),
+            'Yorum çekilmemiş.',
+          )}
+          ${
+            yorumlar.lowRated.length === 0
+              ? ''
+              : `<p class="alt-satir" style="margin:22px 0 10px">Düşük puanlı yorumlardan örnekler</p>
+                 <ul class="dar" style="padding-left:18px;margin:0">
+                   ${yorumlar.lowRated
+                     .slice(0, 8)
+                     .map(
+                       (r) =>
+                         `<li><span class="tnum olculemedi">${esc(String(r.rating))}</span> ${esc(r.text.slice(0, 180))}</li>`,
+                     )
+                     .join('')}
+                 </ul>`
+          }`,
+        })}
+        ${yorumTemalariBolumu(ai.yorumTemalari, id)}`,
     });
   });
 }
@@ -587,8 +731,8 @@ export async function listinglerSayfasi(
   id: string,
   filtre: ListingFiltresi,
 ): Promise<string | null> {
-  const siralamaAnahtari = filtre.sirala in SIRALAMALAR ? filtre.sirala : 'hiz';
-  const sirala = SIRALAMALAR[siralamaAnahtari];
+  const anahtar = filtre.sirala in SIRALAMALAR ? filtre.sirala : 'hiz';
+  const sirala = SIRALAMALAR[anahtar];
   if (sirala === undefined) return null;
 
   return withDb(async (db) => {
@@ -638,17 +782,21 @@ export async function listinglerSayfasi(
 
     const bag: NisBagi = { id, ad: nis.name };
     const yol = `/nis/${encodeURIComponent(id)}/listingler`;
+    const filtreliMi =
+      (filtre.ara !== null && filtre.ara !== '') ||
+      (filtre.minFiyat !== null && filtre.minFiyat !== '') ||
+      (filtre.maxFiyat !== null && filtre.maxFiyat !== '');
 
     const siralamaBaglari = Object.entries(SIRALAMALAR)
-      .map(([anahtar, s]) => {
+      .map(([k, s]) => {
         const url = new URL(yol, 'http://yerel');
-        url.searchParams.set('sirala', anahtar);
+        url.searchParams.set('sirala', k);
         if (filtre.ara !== null && filtre.ara !== '') url.searchParams.set('ara', filtre.ara);
         if (filtre.minFiyat !== null && filtre.minFiyat !== '')
           url.searchParams.set('min', filtre.minFiyat);
         if (filtre.maxFiyat !== null && filtre.maxFiyat !== '')
           url.searchParams.set('max', filtre.maxFiyat);
-        return anahtar === siralamaAnahtari
+        return k === anahtar
           ? `<strong>${esc(s.etiket)}</strong>`
           : `<a href="${esc(`${url.pathname}${url.search}`)}">${esc(s.etiket)}</a>`;
       })
@@ -658,51 +806,54 @@ export async function listinglerSayfasi(
       baslik: `${nis.name} · Listingler`,
       nis: bag,
       aktif: yol,
-      icerik: `<div class="sayfa-basi"><h1>Listing gezgini</h1></div>
-        <p class="sayfa-alt">Son çekimdeki listingler. En fazla 200 satır gösterilir.</p>
-        <section class="kart">
-          <form method="get" action="${yol}" class="filtre-satiri">
-            <input type="hidden" name="sirala" value="${esc(siralamaAnahtari)}">
-            <div class="alan">
-              <label for="ara">Başlıkta ara</label>
-              <input id="ara" name="ara" value="${esc(filtre.ara ?? '')}" placeholder="handmade">
-            </div>
-            <div class="alan">
-              <label for="min">En düşük fiyat</label>
-              <input id="min" name="min" inputmode="decimal" value="${esc(filtre.minFiyat ?? '')}">
-            </div>
-            <div class="alan">
-              <label for="max">En yüksek fiyat</label>
-              <input id="max" name="max" inputmode="decimal" value="${esc(filtre.maxFiyat ?? '')}">
-            </div>
-            <button class="dugme" type="submit">Filtrele</button>
-            ${
-              filtre.ara !== null || filtre.minFiyat !== null || filtre.maxFiyat !== null
-                ? `<a class="dugme" href="${yol}" style="text-decoration:none">Temizle</a>`
-                : ''
-            }
-          </form>
-          <p class="grafik-alt siralama-baglari" style="margin-bottom:14px">Sırala: ${siralamaBaglari}</p>
-          <p class="grafik-alt" style="margin-top:0;margin-bottom:14px">${esc(tamsayi(satirlar.length))} satır</p>
-          ${tablo(
+      icerik: `<p class="ust-etiket">${esc(nis.name)}</p>
+        <h1>${esc(tamsayi(satirlar.length))} listing listeleniyor.</h1>
+        <p class="giris">Son çekimdeki kayıtlar, ${esc(sirala.etiket.toLowerCase())} sırasına göre.${
+          filtreliMi ? ' Filtre uygulandı.' : ' En fazla 200 satır gösterilir.'
+        }</p>
+        <div style="margin-top:44px"></div>
+        ${bolum({
+          baslik: 'Filtre',
+          govde: `<form method="get" action="${yol}" class="filtre-satiri">
+              <input type="hidden" name="sirala" value="${esc(anahtar)}">
+              <div class="alan">
+                <label for="ara">Başlıkta ara</label>
+                <input id="ara" name="ara" value="${esc(filtre.ara ?? '')}" placeholder="handmade">
+              </div>
+              <div class="alan">
+                <label for="min">En düşük fiyat</label>
+                <input id="min" name="min" inputmode="decimal" value="${esc(filtre.minFiyat ?? '')}">
+              </div>
+              <div class="alan">
+                <label for="max">En yüksek fiyat</label>
+                <input id="max" name="max" inputmode="decimal" value="${esc(filtre.maxFiyat ?? '')}">
+              </div>
+              <button class="dugme dugme-sade" type="submit">Uygula</button>
+              ${filtreliMi ? `<a class="dugme dugme-sade" href="${yol}">Temizle</a>` : ''}
+            </form>
+            <p class="siralama">Sırala: ${siralamaBaglari}</p>`,
+        })}
+        ${bolum({
+          baslik: 'Listingler',
+          govde: tablo(
             ['Başlık', 'Hız /gün', 'Fiyat', 'Favori'],
             satirlar.map((r) => [
               `${
                 r.url === null
                   ? `<span class="kirp">${esc(r.title ?? '(başlıksız)')}</span>`
                   : `<a class="kirp" href="${esc(r.url)}" target="_blank" rel="noreferrer">${esc(r.title ?? '(başlıksız)')}</a>`
-              }<div class="olculemedi">${
+              }<span class="alt-satir">${
                 r.shop_name === null
                   ? `#${esc(String(r.shop_id ?? '—'))} · ad çekilmedi`
                   : esc(r.shop_name)
-              }</div>`,
+              }</span>`,
               deger(r.favorite_velocity, 'sayi'),
               deger(r.price_amount, 'para'),
               deger(r.num_favorers === null ? null : Number(r.num_favorers), 'tamsayi'),
             ]),
             'Bu filtreyle eşleşen listing yok.',
-          )}
-        </section>`,
+          ),
+        })}`,
     });
   });
 }
