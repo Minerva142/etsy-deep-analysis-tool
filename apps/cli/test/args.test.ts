@@ -40,11 +40,43 @@ describe('parseArgs', () => {
     expect(parsed.niche.taxonomyId).toBeNull();
   });
 
+  it('kota sınırlarını okur', () => {
+    const parsed = parseArgs([
+      'snapshot',
+      '--niche',
+      'mug',
+      '--name',
+      'x',
+      '--max-pages',
+      '2',
+      '--max-shops',
+      '5',
+      '--max-review-listings',
+      '3',
+    ]);
+    expect(parsed.limits.maxPages).toBe(2);
+    expect(parsed.limits.maxShops).toBe(5);
+    expect(parsed.limits.maxReviewListings).toBe(3);
+  });
+
+  it('kota sınırı verilmezse null olur', () => {
+    const parsed = parseArgs(['snapshot', '--niche', 'mug', '--name', 'x']);
+    expect(parsed.limits.maxPages).toBeNull();
+    expect(parsed.limits.maxShops).toBeNull();
+    expect(parsed.limits.maxReviewListings).toBeNull();
+  });
+
   it('bilinmeyen komutu reddeder', () => {
     expect(() => parseArgs(['analyze'])).toThrow(/Bilinmeyen komut/);
   });
 
   it('--niche eksikse hata verir', () => {
     expect(() => parseArgs(['snapshot', '--name', 'x'])).toThrow(/--niche gerekli/);
+  });
+
+  it('sayısal olmayan sınırı reddeder', () => {
+    expect(() =>
+      parseArgs(['snapshot', '--niche', 'mug', '--name', 'x', '--max-pages', 'abc']),
+    ).toThrow(/--max-pages sayı olmalı/);
   });
 });

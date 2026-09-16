@@ -58,18 +58,23 @@ describe('EtsyClient', () => {
 
   it("live modda x-api-key header’ı gönderir", async () => {
     const { fetchImpl, headers } = capturingFetch('{"count":0,"results":[]}');
-    const client = build({ ETSY_MODE: 'live', ETSY_API_KEY: 'key-abc' }, fetchImpl);
+    const client = build({ ETSY_MODE: 'live', ETSY_API_KEY: 'key-abc', ETSY_SHARED_SECRET: 'sec-1' }, fetchImpl);
 
     await client.request({ path: '/v3/application/shops', ttlSeconds: 60 });
 
-    expect(headers().get('x-api-key')).toBe('key-abc');
+    expect(headers().get('x-api-key')).toBe('key-abc:sec-1');
     expect(headers().get('authorization')).toBeNull();
   });
 
   it('oauth isteğinde Bearer token ekler', async () => {
     const { fetchImpl, headers } = capturingFetch('{}');
     const client = build(
-      { ETSY_MODE: 'live', ETSY_API_KEY: 'key-abc', ETSY_OAUTH_ACCESS_TOKEN: 'tok-1' },
+      {
+        ETSY_MODE: 'live',
+        ETSY_API_KEY: 'key-abc',
+        ETSY_SHARED_SECRET: 'sec-1',
+        ETSY_OAUTH_ACCESS_TOKEN: 'tok-1',
+      },
       fetchImpl,
     );
 
@@ -80,7 +85,7 @@ describe('EtsyClient', () => {
     });
 
     expect(headers().get('authorization')).toBe('Bearer tok-1');
-    expect(headers().get('x-api-key')).toBe('key-abc');
+    expect(headers().get('x-api-key')).toBe('key-abc:sec-1');
   });
 
   it("ikinci özdeş istekte cache’ten okur", async () => {
@@ -91,7 +96,7 @@ describe('EtsyClient', () => {
         }),
     );
     const client = build(
-      { ETSY_MODE: 'live', ETSY_API_KEY: 'key-abc' },
+      { ETSY_MODE: 'live', ETSY_API_KEY: 'key-abc', ETSY_SHARED_SECRET: 'sec-1' },
       fetchImpl as unknown as typeof fetch,
     );
     const req = {
@@ -112,7 +117,7 @@ describe('EtsyClient', () => {
       .mockResolvedValueOnce(new Response('rate limited', { status: 429 }))
       .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true }), { status: 200 }));
     const client = build(
-      { ETSY_MODE: 'live', ETSY_API_KEY: 'key-abc' },
+      { ETSY_MODE: 'live', ETSY_API_KEY: 'key-abc', ETSY_SHARED_SECRET: 'sec-1' },
       fetchImpl as unknown as typeof fetch,
     );
 
@@ -128,7 +133,7 @@ describe('EtsyClient', () => {
   it('404 için yeniden denemeden hata fırlatır', async () => {
     const fetchImpl = vi.fn(async () => new Response('not found', { status: 404 }));
     const client = build(
-      { ETSY_MODE: 'live', ETSY_API_KEY: 'key-abc' },
+      { ETSY_MODE: 'live', ETSY_API_KEY: 'key-abc', ETSY_SHARED_SECRET: 'sec-1' },
       fetchImpl as unknown as typeof fetch,
     );
 
@@ -143,7 +148,7 @@ describe('EtsyClient', () => {
       status: 200,
       headers: { 'x-remaining-today': '9000', 'x-remaining-this-secon': '5' },
     });
-    const client = build({ ETSY_MODE: 'live', ETSY_API_KEY: 'key-abc' }, fetchImpl);
+    const client = build({ ETSY_MODE: 'live', ETSY_API_KEY: 'key-abc', ETSY_SHARED_SECRET: 'sec-1' }, fetchImpl);
 
     await client.request({ path: '/v3/application/shops', ttlSeconds: 60 });
 

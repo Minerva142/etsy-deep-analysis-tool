@@ -38,3 +38,6 @@ pnpm-debug.log*
 # Local arac ayarlari
 .claude/settings.local.json
 .semgrep/
+
+# API anahtarlari
+keys.txt

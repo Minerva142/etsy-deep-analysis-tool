@@ -6,11 +6,14 @@ import { loadFixture } from './fixtures.js';
 
 const BASE_URL = 'https://openapi.etsy.com';
 const MAX_ATTEMPTS = 5;
+/** Hata gövdesinden mesaja taşınacak en fazla karakter. */
+const ERROR_BODY_LIMIT = 500;
 
 export class EtsyApiError extends Error {
   constructor(
     message: string,
     readonly status: number,
+    readonly body: string = '',
   ) {
     super(message);
     this.name = 'EtsyApiError';
@@ -67,8 +70,8 @@ export class EtsyClient {
 
   private buildHeaders(auth: 'apiKey' | 'oauth'): Headers {
     const headers = new Headers({ accept: 'application/json' });
-    if (this.config.etsyApiKey !== null) {
-      headers.set('x-api-key', this.config.etsyApiKey);
+    if (this.config.etsyApiKeyHeader !== null) {
+      headers.set('x-api-key', this.config.etsyApiKeyHeader);
     }
     if (auth === 'oauth') {
       if (this.config.etsyOauthAccessToken === null) {
@@ -90,6 +93,25 @@ export class EtsyClient {
     return url.toString();
   }
 
+  /**
+   * Hata gövdesini mesaja taşır. Etsy 4xx yanıtlarında nedeni yalnızca
+   * gövdede bildiriyor; durum kodu tek başına teşhis için yetmiyor.
+   */
+  private static async describeFailure(response: Response, path: string): Promise<EtsyApiError> {
+    let body = '';
+    try {
+      body = (await response.text()).slice(0, ERROR_BODY_LIMIT);
+    } catch {
+      body = '(gövde okunamadı)';
+    }
+    const suffix = body.trim().length > 0 ? ` — ${body.trim()}` : '';
+    return new EtsyApiError(
+      `Etsy isteği başarısız (${String(response.status)}): ${path}${suffix}`,
+      response.status,
+      body,
+    );
+  }
+
   private async fetchWithRetry(
     path: string,
     params: Record<string, string | number | undefined>,
@@ -108,11 +130,8 @@ export class EtsyClient {
         return (await response.json()) as unknown;
       }
 
+      const error = await EtsyClient.describeFailure(response, path);
       const retryable = response.status === 429 || response.status >= 500;
-      const error = new EtsyApiError(
-        `Etsy isteği başarısız (${String(response.status)}): ${path}`,
-        response.status,
-      );
       if (!retryable) throw error;
 
       lastError = error;

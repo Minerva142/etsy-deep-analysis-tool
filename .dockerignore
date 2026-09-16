@@ -1,0 +1,23 @@
+# Bağımlılıklar container içinde yeniden kurulur (platform farklı olabilir).
+node_modules
+**/node_modules
+
+# Sırlar imaja girmez; değişkenler compose'un env_file'ı ile runtime'da gelir.
+.env
+.env.*
+keys.txt
+
+# Veri volume'dan gelir
+data
+
+# Derleme çıktıları ve yerel gürültü
+dist
+**/dist
+*.tsbuildinfo
+coverage
+.git
+.github
+.claude
+.semgrep
+docs
+*.log

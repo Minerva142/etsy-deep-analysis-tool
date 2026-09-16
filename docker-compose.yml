@@ -1,0 +1,12 @@
+services:
+  cli:
+    build: .
+    image: etsy-deep-analysis-tool
+    # Anahtarlar imaja gömülmez, çalışma anında host'taki .env'den okunur.
+    env_file:
+      - .env
+    environment:
+      DUCKDB_PATH: /app/data/etsy.duckdb
+    # DuckDB dosyası host'ta kalır: container silinse de tarihçe durur.
+    volumes:
+      - ./data:/app/data

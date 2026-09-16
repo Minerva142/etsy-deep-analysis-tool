@@ -8,6 +8,7 @@ import {
   ingestReviews,
   ingestTaxonomy,
   loadConfig,
+  loadDotEnvIfPresent,
   migrate,
   openDb,
   runNicheSnapshot,
@@ -15,9 +16,17 @@ import {
   type Niche,
 } from '@etsy-analysis/core';
 
+/** Canlı modda kotayı sınırlamak için üst sınırlar; hepsi opsiyonel. */
+export interface SnapshotLimits {
+  maxPages: number | null;
+  maxShops: number | null;
+  maxReviewListings: number | null;
+}
+
 export interface ParsedArgs {
   command: 'snapshot';
   niche: Niche;
+  limits: SnapshotLimits;
 }
 
 function readFlag(argv: string[], name: string): string | null {
@@ -56,11 +65,17 @@ export function parseArgs(argv: string[]): ParsedArgs {
       minPrice: readNumberFlag(argv, 'min-price'),
       maxPrice: readNumberFlag(argv, 'max-price'),
     },
+    limits: {
+      maxPages: readNumberFlag(argv, 'max-pages'),
+      maxShops: readNumberFlag(argv, 'max-shops'),
+      maxReviewListings: readNumberFlag(argv, 'max-review-listings'),
+    },
   };
 }
 
 export async function main(argv: string[]): Promise<void> {
-  const { niche } = parseArgs(argv);
+  const { niche, limits } = parseArgs(argv);
+  loadDotEnvIfPresent();
   const config = loadConfig(process.env);
 
   await mkdir(dirname(config.duckdbPath), { recursive: true });
@@ -76,10 +91,25 @@ export async function main(argv: string[]): Promise<void> {
 
   await upsertNiche(db, niche);
 
-  const result = await runNicheSnapshot({ db, client, niche });
+  const result = await runNicheSnapshot({
+    db,
+    client,
+    niche,
+    maxPages: limits.maxPages ?? undefined,
+  });
   const taxonomy = await ingestTaxonomy({ db, client });
-  const shops = await enrichShops({ db, client, snapshotId: result.snapshotId });
-  const reviews = await ingestReviews({ db, client, snapshotId: result.snapshotId });
+  const shops = await enrichShops({
+    db,
+    client,
+    snapshotId: result.snapshotId,
+    maxShops: limits.maxShops ?? undefined,
+  });
+  const reviews = await ingestReviews({
+    db,
+    client,
+    snapshotId: result.snapshotId,
+    maxListings: limits.maxReviewListings ?? undefined,
+  });
 
   const totalApiCalls = result.apiCalls + shops.apiCalls + reviews.apiCalls + 1;
 

@@ -15,10 +15,36 @@ describe('loadConfig', () => {
     );
   });
 
-  it('live modda API key verilince yapılandırmayı döner', () => {
-    const config = loadConfig({ ETSY_MODE: 'live', ETSY_API_KEY: 'abc123' });
+  it('live modda shared secret zorunludur', () => {
+    expect(() => loadConfig({ ETSY_MODE: 'live', ETSY_API_KEY: 'abc123' })).toThrow(
+      /ETSY_MODE=live için ETSY_SHARED_SECRET gerekli/,
+    );
+  });
+
+  it('live modda her iki değer verilince yapılandırmayı döner', () => {
+    const config = loadConfig({
+      ETSY_MODE: 'live',
+      ETSY_API_KEY: 'abc123',
+      ETSY_SHARED_SECRET: 'sec456',
+    });
     expect(config.etsyMode).toBe('live');
     expect(config.etsyApiKey).toBe('abc123');
+    expect(config.etsySharedSecret).toBe('sec456');
+  });
+
+  it("x-api-key header'ını keystring:secret olarak birleştirir", () => {
+    const config = loadConfig({
+      ETSY_MODE: 'live',
+      ETSY_API_KEY: 'abc123',
+      ETSY_SHARED_SECRET: 'sec456',
+    });
+    // Etsy v3 keystring'i tek başına 403 ile reddediyor.
+    expect(config.etsyApiKeyHeader).toBe('abc123:sec456');
+  });
+
+  it('shared secret yoksa header sadece keystring olur', () => {
+    const config = loadConfig({ ETSY_API_KEY: 'abc123' });
+    expect(config.etsyApiKeyHeader).toBe('abc123');
   });
 
   it('geçersiz modu reddeder', () => {

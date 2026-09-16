@@ -1,6 +1,6 @@
 export const CORE_VERSION = '0.1.0';
 
-export { loadConfig, type Config } from './config.js';
+export { loadConfig, loadDotEnvIfPresent, type Config } from './config.js';
 export {
   openDb,
   toDbTimestamp,
