@@ -4,7 +4,18 @@ import {
   EtsyClient,
   HttpCache,
   RateLimiter,
+  countSnapshots,
   enrichShops,
+  getConcentration,
+  getFreshness,
+  getGapMatrix,
+  getMarketOverview,
+  getPriceDemandCurve,
+  getReviewStats,
+  getSellerTable,
+  getTagQuadrant,
+  getTopRisers,
+  getVelocitySeries,
   ingestReviews,
   ingestTaxonomy,
   loadConfig,
@@ -13,8 +24,10 @@ import {
   openDb,
   runNicheSnapshot,
   upsertNiche,
+  type Db,
   type Niche,
 } from '@etsy-analysis/core';
+import { formatReport } from './report.js';
 
 /** Canlı modda kotayı sınırlamak için üst sınırlar; hepsi opsiyonel. */
 export interface SnapshotLimits {
@@ -23,11 +36,9 @@ export interface SnapshotLimits {
   maxReviewListings: number | null;
 }
 
-export interface ParsedArgs {
-  command: 'snapshot';
-  niche: Niche;
-  limits: SnapshotLimits;
-}
+export type ParsedArgs =
+  | { command: 'snapshot'; niche: Niche; limits: SnapshotLimits }
+  | { command: 'report'; nicheId: string };
 
 function readFlag(argv: string[], name: string): string | null {
   const index = argv.indexOf(`--${name}`);
@@ -45,8 +56,17 @@ function readNumberFlag(argv: string[], name: string): number | null {
 
 export function parseArgs(argv: string[]): ParsedArgs {
   const command = argv[0];
+
+  if (command === 'report') {
+    const nicheId = readFlag(argv, 'niche');
+    if (nicheId === null) throw new Error('--niche gerekli');
+    return { command: 'report', nicheId };
+  }
+
   if (command !== 'snapshot') {
-    throw new Error(`Bilinmeyen komut: ${String(command)}. Kullanılabilir: snapshot`);
+    throw new Error(
+      `Bilinmeyen komut: ${String(command)}. Kullanılabilir: snapshot, report`,
+    );
   }
 
   const nicheId = readFlag(argv, 'niche');
@@ -74,22 +94,12 @@ export function parseArgs(argv: string[]): ParsedArgs {
   };
 }
 
-export async function main(argv: string[]): Promise<void> {
-  const { niche, limits } = parseArgs(argv);
-  loadDotEnvIfPresent();
-  const config = loadConfig(process.env);
-
-  await mkdir(dirname(config.duckdbPath), { recursive: true });
-  const db = await openDb(config.duckdbPath);
-  await migrate(db);
-
-  const client = new EtsyClient({
-    config,
-    db,
-    cache: new HttpCache(db),
-    limiter: new RateLimiter(db),
-  });
-
+async function runSnapshot(
+  db: Db,
+  client: EtsyClient,
+  niche: Niche,
+  limits: SnapshotLimits,
+): Promise<void> {
   await upsertNiche(db, niche);
 
   const result = await runNicheSnapshot({
@@ -120,9 +130,87 @@ export async function main(argv: string[]): Promise<void> {
       `  satıcı: ${String(shops.shopCount)}\n` +
       `  yorum: ${String(reviews.reviewCount)}\n` +
       `  kategori düğümü: ${String(taxonomy.nodeCount)}\n` +
-      `  API çağrısı: ${String(totalApiCalls)}\n` +
-      `  mod: ${config.etsyMode}\n`,
+      `  API çağrısı: ${String(totalApiCalls)}\n`,
   );
+}
+
+async function runReport(db: Db, nicheId: string): Promise<void> {
+  const nisler = await db.query<{ name: string }>(
+    'select name from niches where niche_id = $id',
+    { id: nicheId },
+  );
+  const nis = nisler[0];
+  if (nis === undefined) {
+    throw new Error(
+      `Niş bulunamadı: ${nicheId}. Önce snapshot alın: pnpm snapshot --niche ${nicheId} ...`,
+    );
+  }
+
+  const [
+    snapshotCount,
+    overview,
+    freshness,
+    series,
+    risers,
+    bands,
+    gaps,
+    tags,
+    sellers,
+    concentration,
+    reviews,
+  ] = await Promise.all([
+    countSnapshots(db, nicheId),
+    getMarketOverview(db, nicheId),
+    getFreshness(db, nicheId),
+    getVelocitySeries(db, nicheId),
+    getTopRisers(db, nicheId),
+    getPriceDemandCurve(db, nicheId),
+    getGapMatrix(db, nicheId),
+    getTagQuadrant(db, nicheId),
+    getSellerTable(db, nicheId),
+    getConcentration(db, nicheId),
+    getReviewStats(db, nicheId),
+  ]);
+
+  process.stdout.write(
+    formatReport({
+      nicheName: nis.name,
+      snapshotCount,
+      overview,
+      freshness,
+      series,
+      risers,
+      bands,
+      gaps,
+      tags,
+      sellers,
+      concentration,
+      reviews,
+    }),
+  );
+}
+
+export async function main(argv: string[]): Promise<void> {
+  const parsed = parseArgs(argv);
+  loadDotEnvIfPresent();
+  const config = loadConfig(process.env);
+
+  await mkdir(dirname(config.duckdbPath), { recursive: true });
+  const db = await openDb(config.duckdbPath);
+  await migrate(db);
+
+  if (parsed.command === 'report') {
+    await runReport(db, parsed.nicheId);
+  } else {
+    const client = new EtsyClient({
+      config,
+      db,
+      cache: new HttpCache(db),
+      limiter: new RateLimiter(db),
+    });
+    await runSnapshot(db, client, parsed.niche, parsed.limits);
+    process.stdout.write(`  mod: ${config.etsyMode}\n`);
+  }
 
   await db.close();
 }

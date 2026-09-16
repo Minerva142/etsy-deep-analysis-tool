@@ -11,6 +11,7 @@
     "test:watch": "vitest",
     "typecheck": "tsc -b",
     "snapshot": "tsx apps/cli/src/index.ts snapshot",
+    "report": "tsx apps/cli/src/index.ts report",
     "inspect": "tsx scripts/inspect.ts"
   },
   "dependencies": {

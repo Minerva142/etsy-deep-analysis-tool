@@ -8,20 +8,21 @@ Etsy pazarını sistematik olarak analiz eden, local çalışan bir araç. Etsy 
 - **Fiyat–talep eğrisi** — hangi fiyat bandında arz az, ilgi yüksek
 - **Etiket fırsat kadranı** — getirisine göre az kullanılan etiketler
 - **Boşluk matrisi** — kategori × fiyat bandı bazında talep/arz oranı
-- **Rekabet analizi** — satıcı konsantrasyonu, yükselen satıcılar
-- **Yorum madenciliği** — düşük puanlı yorumlarda tekrar eden temalar
+- **Rekabet analizi** — satıcı konsantrasyonu (HHI), yükselen satıcılar
+- **Tazelik** — listing'lerin gerçek yaşı, nişe yeni giriş hızı
+- **Yorum madenciliği** — puan dağılımı ve düşük puanlı yorumlar
 
 ## Ne yapmaz
 
-- Satış adedi veya gelir **tahmini üretmez**. Etsy public API'si satış ve görüntülenme verisi vermez; araç yalnızca ölçülmüş veriyi gösterir, tek talep sinyali `num_favorers`'tır.
+- Satış adedi veya gelir **tahmini üretmez**. Etsy public API'si satış ve görüntülenme verisi vermez; tek talep sinyali `num_favorers` ve onun zaman içindeki türevidir.
 - Etsy'yi scrape etmez — tüm veri resmî Open API v3'ten, rate limit'lere uyularak alınır.
 - Otomatik listing yayınlamaz veya düzenlemez.
+- **Ölçemediği şeyi uydurmaz.** Tek snapshot varken hız analizleri boş tablo değil, açık bir uyarı gösterir.
 
 ## Durum
 
-**Faz 0 tamam:** veri boru hattı çalışıyor — Etsy'den çekim, rate limiting, cache, DuckDB'ye snapshot yazma. Canlı API'ye karşı doğrulandı.
-
-Sıradaki: Faz 1, analiz katmanı. Yol haritası [tasarım dokümanında](docs/superpowers/specs/2026-09-16-etsy-deep-analysis-tool-design.md).
+**Faz 0 ve Faz 1 tamam:** veri boru hattı ve analiz katmanı çalışıyor, canlı API'ye karşı doğrulandı.
+Sıradaki: Faz 2, web dashboard. Yol haritası [tasarım dokümanında](docs/superpowers/specs/2026-09-16-etsy-deep-analysis-tool-design.md).
 
 ## Kurulum
 
@@ -41,46 +42,53 @@ ETSY_MODE=live
 ```
 
 > **Dikkat:** Etsy v3, `x-api-key` header'ında keystring'i tek başına kabul etmiyor —
-> `<keystring>:<shared secret>` biçimini bekliyor. Araç bu birleştirmeyi kendisi yapar,
-> sen iki değeri ayrı ayrı vermen yeterli. `ETSY_MODE=fixture` ile API anahtarı olmadan,
-> kayıtlı örnek yanıtlarla da çalışabilir.
+> `<keystring>:<shared secret>` biçimini bekliyor. Araç bu birleştirmeyi kendisi yapar.
+> `ETSY_MODE=fixture` ile API anahtarı olmadan, kayıtlı örnek yanıtlarla da çalışır.
 
 ## Kullanım
 
 ```bash
-# Bir niş için snapshot al
+# Snapshot al
 pnpm snapshot --niche ceramic-mug --name "Ceramic mugs" --keywords "ceramic mug"
 
 # Kotayı sınırla (ilk denemelerde önerilir)
 pnpm snapshot --niche ceramic-mug --name "Ceramic mugs" --keywords "ceramic mug" \
-  --max-pages 1 --max-shops 3 --max-review-listings 3
+  --max-pages 2 --max-shops 8 --max-review-listings 8
 
-# Toplanan veriye hızlı bak
-pnpm inspect
+# Analiz raporunu bas
+pnpm report --niche ceramic-mug
 ```
 
-Diğer seçenekler: `--taxonomy-id`, `--min-price`, `--max-price`.
+Diğer seçenekler: `--taxonomy-id`, `--min-price`, `--max-price`, `--sort-on`.
 
-**Favori hızı için en az iki snapshot gerekir.** Tek snapshot yalnızca anlık bir görüntü verir; analizlerin değerli kısmı ardışık snapshot'lar arasındaki değişimden gelir. Günlük çalıştırmak makul bir başlangıç.
+### İki şeyi bilmek gerekiyor
+
+**1. Favori hızı için en az iki snapshot gerekir.** Tek snapshot anlık bir görüntü verir; analizlerin değerli kısmı ardışık snapshot'lar arasındaki değişimden gelir. Günlük çalıştırmak makul bir başlangıç.
+
+**2. Snapshot'lar arası en az bir saat olmalı.** Hız formülü güne böldüğü için beş dakikalık aralıktaki tek bir favori artışı 288/gün gibi anlamsız bir değere dönüşürdü. Araç bir saatten kısa aralıkları ölçülemez sayar.
+
+**Örnekleme notu:** Snapshot'lar varsayılan olarak `sort_on=score` ile alınır. Etsy'nin kendi varsayılanı (`created`) her gün "o gün oluşturulan ya da yenilenen" listing'leri verir — örneklem her gün tamamen değiştiği için aynı listing iki snapshot'ta görünmez ve hız hiç hesaplanamaz.
 
 ## Docker
 
 ```bash
 docker compose build
 docker compose run --rm cli snapshot --niche ceramic-mug --name "Ceramic mugs" --keywords "ceramic mug"
+docker compose run --rm cli report --niche ceramic-mug
 docker compose run --rm cli test
 ```
 
-Anahtarlar imaja gömülmez; çalışma anında host'taki `.env`'den okunur. DuckDB dosyası `./data` volume'unda host'ta durur, yani container silinse de tarihçe kaybolmaz — yerelde ve container'da çalıştırılan snapshot'lar aynı veritabanında birikir.
+Anahtarlar imaja gömülmez; çalışma anında host'taki `.env`'den okunur. DuckDB dosyası `./data` volume'unda host'ta durur — container silinse de tarihçe kaybolmaz ve yerelde/container'da alınan snapshot'lar aynı veritabanında birikir.
 
 ## Geliştirme
 
 ```bash
-pnpm test        # 73 test, ağ erişimi gerektirmez (fixture modu)
+pnpm test        # 129 test, ağ erişimi gerektirmez (fixture modu)
 pnpm typecheck
+pnpm inspect     # ham veriye hızlı bakış
 ```
 
-Testler Etsy'ye hiç istek atmaz; `packages/core/fixtures/` altındaki kayıtlı yanıtları kullanır.
+Testler Etsy'ye hiç istek atmaz; `packages/core/fixtures/` altındaki kayıtlı yanıtları ve bilinen bir seed veri setini kullanır. Analiz hesapları (medyan, favori hızı, HHI, kadranlar) bu seed üzerinde birebir doğrulanır.
 
 ## Teknoloji
 

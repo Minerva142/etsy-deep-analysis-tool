@@ -110,3 +110,56 @@ CREATE TABLE IF NOT EXISTS rate_limit_state (
   remaining_this_second INTEGER,
   updated_at            TIMESTAMP NOT NULL
 );
+
+-- =====================================================================
+-- Analiz view'lari
+-- =====================================================================
+
+-- Ardisik iki gozlem arasinda gunluk favori artisi.
+-- Ilk gozlemde (karsilastiracak onceki kayit yokken) NULL.
+CREATE OR REPLACE VIEW v_listing_velocity AS
+WITH ardisik AS (
+  SELECT
+    s.niche_id,
+    o.snapshot_id,
+    o.listing_id,
+    o.observed_at,
+    o.num_favorers,
+    o.price_amount,
+    LAG(o.num_favorers) OVER (
+      PARTITION BY s.niche_id, o.listing_id ORDER BY o.observed_at
+    ) AS onceki_favori,
+    LAG(o.observed_at) OVER (
+      PARTITION BY s.niche_id, o.listing_id ORDER BY o.observed_at
+    ) AS onceki_an
+  FROM listing_observations o
+  JOIN snapshots s ON s.snapshot_id = o.snapshot_id
+)
+SELECT
+  niche_id,
+  snapshot_id,
+  listing_id,
+  observed_at,
+  num_favorers,
+  price_amount,
+  CASE
+    WHEN onceki_favori IS NULL THEN NULL
+    -- Cok yakin iki snapshot arasinda hiz olculemez: formul gune boldugu
+    -- icin 5 dakikalik araliktaki tek bir favori artisi 288/gun gibi
+    -- anlamsiz bir degere donusur. 1 saatten kisa aralik NULL sayilir.
+    WHEN date_diff('second', onceki_an, observed_at) < 3600 THEN NULL
+    ELSE (num_favorers - onceki_favori)
+         / (date_diff('second', onceki_an, observed_at) / 86400.0)
+  END AS favorite_velocity
+FROM ardisik;
+
+-- Nis basina son tamamlanmis snapshot.
+CREATE OR REPLACE VIEW v_latest_snapshot AS
+SELECT niche_id, snapshot_id, started_at
+FROM (
+  SELECT niche_id, snapshot_id, started_at,
+         ROW_NUMBER() OVER (PARTITION BY niche_id ORDER BY started_at DESC) AS sira
+  FROM snapshots
+  WHERE status = 'complete'
+)
+WHERE sira = 1;

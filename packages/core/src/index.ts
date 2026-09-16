@@ -27,3 +27,33 @@ export { runNicheSnapshot, upsertNiche, type Niche } from './ingest/niche-snapsh
 export { enrichShops } from './ingest/shop-enrich.js';
 export { ingestReviews, buildReviewId } from './ingest/reviews.js';
 export { ingestTaxonomy, flattenTaxonomy } from './ingest/taxonomy.js';
+
+// --- Analiz katmanı (Faz 1) ---
+export { getLatestSnapshotId, countSnapshots } from './analysis/velocity.js';
+export {
+  getMarketOverview,
+  getFreshness,
+  getReviewStats,
+  type MarketOverview,
+  type Freshness,
+  type ReviewStats,
+} from './analysis/overview.js';
+export {
+  getVelocitySeries,
+  getTopRisers,
+  type VelocityPoint,
+  type RiserRow,
+} from './analysis/demand.js';
+export {
+  getPriceDemandCurve,
+  getGapMatrix,
+  type PriceBand,
+  type GapCell,
+} from './analysis/pricing.js';
+export { getTagQuadrant, type TagRow, type TagQuadrant } from './analysis/tags.js';
+export {
+  getSellerTable,
+  getConcentration,
+  type SellerRow,
+  type Concentration,
+} from './analysis/sellers.js';

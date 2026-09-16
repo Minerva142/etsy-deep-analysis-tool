@@ -8,7 +8,9 @@ describe('veritabanı', () => {
     await migrate(db);
 
     const rows = await db.query<{ table_name: string }>(
-      `select table_name from information_schema.tables where table_schema = 'main' order by table_name`,
+      `select table_name from information_schema.tables
+        where table_schema = 'main' and table_type = 'BASE TABLE'
+        order by table_name`,
     );
     const names = rows.map((r) => r.table_name);
 
@@ -25,6 +27,23 @@ describe('veritabanı', () => {
       'shops',
       'snapshots',
       'taxonomy_nodes',
+    ]);
+    await db.close();
+  });
+
+  it('analiz view’larını oluşturur', async () => {
+    const db = await openDb(':memory:');
+    await migrate(db);
+
+    const rows = await db.query<{ table_name: string }>(
+      `select table_name from information_schema.tables
+        where table_schema = 'main' and table_type = 'VIEW'
+        order by table_name`,
+    );
+
+    expect(rows.map((r) => r.table_name)).toEqual([
+      'v_latest_snapshot',
+      'v_listing_velocity',
     ]);
     await db.close();
   });
