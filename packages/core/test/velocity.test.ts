@@ -41,9 +41,10 @@ describe('favori hızı view’ı', () => {
     expect(rows[0]?.favorite_velocity).toBeNull();
   });
 
-  it('bir saatten kısa aralıkta hız ölçmeyi reddeder', async () => {
-    // Formül güne böldüğü için 5 dakikalık aralıktaki tek bir favori artışı
-    // 288/gün gibi anlamsız bir değere dönüşürdü.
+  it('çok yakın ek çekim, eldeki ölçümü körleştirmez', async () => {
+    // Hız artık bir önceki SATIRLA değil, en az 1 saat öncesindeki en yakın
+    // gözlemle karşılaştırılıyor. Böylece art arda alınan fazladan bir çekim
+    // geçerli ölçümü yok etmiyor.
     const yakinAn = new Date('2026-09-11T00:05:00Z');
     await db.runStatement(
       `insert into snapshots (snapshot_id, niche_id, started_at, finished_at, status)
@@ -62,7 +63,9 @@ describe('favori hızı view’ı', () => {
       `select favorite_velocity from v_listing_velocity
         where listing_id = 1 and snapshot_id = 'snap-c'`,
     );
-    expect(rows[0]?.favorite_velocity).toBeNull();
+    // snap-b 5 dakika önce (çerçeve dışı), snap-a 10 gün önce:
+    // (201 - 100) / 10.0035 gün ≈ 10.1
+    expect(Number(rows[0]?.favorite_velocity)).toBeCloseTo(10.1, 1);
   });
 
   it('son snapshot’ı bulur', async () => {

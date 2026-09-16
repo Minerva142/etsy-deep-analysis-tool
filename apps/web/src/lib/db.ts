@@ -14,7 +14,7 @@ import {
  * ./data/etsy.duckdb dosyasını göstermeli. Kökü pnpm-workspace.yaml'ı arayarak
  * buluyoruz; Docker'da cwd zaten kök olduğu için ilk adımda bulunur.
  */
-function veritabaniYolu(configPath: string): string {
+export function veritabaniYolu(configPath: string): string {
   if (isAbsolute(configPath)) return configPath;
 
   let dizin = process.cwd();

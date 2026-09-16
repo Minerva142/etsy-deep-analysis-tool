@@ -126,14 +126,22 @@ WITH ardisik AS (
     o.observed_at,
     o.num_favorers,
     o.price_amount,
-    LAG(o.num_favorers) OVER (
-      PARTITION BY s.niche_id, o.listing_id ORDER BY o.observed_at
-    ) AS onceki_favori,
-    LAG(o.observed_at) OVER (
-      PARTITION BY s.niche_id, o.listing_id ORDER BY o.observed_at
-    ) AS onceki_an
+    -- Bir onceki SATIR degil, en az 1 saat oncesindeki EN YAKIN gozlem.
+    --
+    -- Neden: formul gune boldugu icin 5 dakikalik araliktaki tek bir favori
+    -- artisi 288/gun gibi anlamsiz bir degere donusur. Ama "1 saatten kisaysa
+    -- NULL" demek de yanlisti: art arda alinan fazladan bir cekim, eldeki
+    -- gecerli olcumu kor ediyordu. Dogru tanim, karsilastirmayi yeterince
+    -- eski bir gozlemle yapmak.
+    LAST_VALUE(o.num_favorers) OVER w AS onceki_favori,
+    LAST_VALUE(o.observed_at)  OVER w AS onceki_an
   FROM listing_observations o
   JOIN snapshots s ON s.snapshot_id = o.snapshot_id
+  WINDOW w AS (
+    PARTITION BY s.niche_id, o.listing_id
+    ORDER BY o.observed_at
+    RANGE BETWEEN UNBOUNDED PRECEDING AND INTERVAL 1 HOUR PRECEDING
+  )
 )
 SELECT
   niche_id,
@@ -144,10 +152,6 @@ SELECT
   price_amount,
   CASE
     WHEN onceki_favori IS NULL THEN NULL
-    -- Cok yakin iki snapshot arasinda hiz olculemez: formul gune boldugu
-    -- icin 5 dakikalik araliktaki tek bir favori artisi 288/gun gibi
-    -- anlamsiz bir degere donusur. 1 saatten kisa aralik NULL sayilir.
-    WHEN date_diff('second', onceki_an, observed_at) < 3600 THEN NULL
     ELSE (num_favorers - onceki_favori)
          / (date_diff('second', onceki_an, observed_at) / 86400.0)
   END AS favorite_velocity
